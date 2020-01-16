@@ -1,7 +1,6 @@
 # node-red-contrib-components
 Components are an alternative approach to create reusable node-red flows and are
-very much inspired by [action flows]
-(https://github.com/Steveorevo/node-red-contrib-actionflows/tree/master/actionflows).
+very much inspired by [action flows](https://github.com/Steveorevo/node-red-contrib-actionflows/tree/master/actionflows).
 
 Components allow a well defined API, that is configured in the ```component in```
 node. The "API" allows a set of expected incoming message parts. Each of these parameters
