@@ -21,15 +21,10 @@ module.exports = function(RED) {
 
     // Create our node and event handler
     RED.nodes.createNode(this, config);
-    this.counter = config.counter;
-    console.log("initial counter: " + node.counter);
+    this.selected = config.selected;
     this.on("input", function(msg) {
-        if (msg.payload) {
-          node.counter = msg.payload;
-        }
-        msg.counter = node.counter;
-        this.send(msg);
-        console.log("got new counter: " + node.counter);
+      msg.selected = this.selected;
+      this.send(msg);
     });
 
   }
