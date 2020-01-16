@@ -1,0 +1,10 @@
+{
+    "license": "MIT",
+    "name": "node-red-contrib-components",
+    "node-red": {
+        "nodes": {
+            "components": "components.js",
+        }
+    },
+    "version": "0.1.0"
+}

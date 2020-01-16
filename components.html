@@ -1,0 +1,86 @@
+<script type="text/javascript">
+	RED.nodes.registerType('component_in', {
+		category: 'advanced',
+		color: '#AA8888',
+		defaults: {
+      name: {value: "component in"},
+		},
+		label: "comp in",
+		inputs:0,
+		outputs:1,
+		icon: "inject.svg",
+		paletteLabel: "comp start"
+	});
+</script>
+<script type="text/x-red" data-template-name="component_in">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/javascript">
+	RED.nodes.registerType('component', {
+		category: 'advanced',
+		color: '#AA8888',
+		label: "component",
+		defaults: {
+      name: {value: "component out"},
+			counter: {value: "0"},
+		},
+		inputs:1,
+		outputs:1,
+		icon: "font-awesome/fa-retweet",
+    paletteLabel: "use comp",
+		oneditprepare: function() {
+			this.editor = RED.editor.createEditor({
+					id: 'node-description-editor',
+					mode: 'ace/mode/markdown',
+					value: $("#node-input-info").val()
+			});
+			let me = this;
+			me.counter = "";
+			console.log("config counter: ", RED.nodes, RED.nodes.getNodeSet());
+			RED.nodes.eachNode(function(node) {
+				console.log("node: ", node);
+				me.counter += node.name + " ";
+			});
+			$("#node-input-counter").val(me.counter);
+		},
+		oneditsave: function() {
+			var node = this;
+			$("#node-input-info").val(this.editor.getValue());
+			console.log("config counter: " + $("#node-input-counter").val());
+      this.editor.destroy();
+      delete node.editor;
+		}
+	});
+</script>
+
+<script type="text/x-red" data-template-name="component">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+      <label for="node-input-counter"><i class="fa fa-random"></i> <span>counter</span></label>
+			<input type="text" id="node-input-counter">
+    </div>
+</script>
+
+<script type="text/javascript">
+	RED.nodes.registerType('component_out', {
+		category: 'advanced',
+		color: '#AA8888',
+		label: "comp out",
+    align: 'right',
+		defaults: {
+      name: {value:"comp return"},
+      links: { value: [] }
+		},
+		inputs:1,
+		outputs:0,
+		icon: "font-awesome/fa-mail-reply",
+    paletteLabel: "comp return"
+	});
+</script>
