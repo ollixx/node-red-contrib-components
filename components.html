@@ -5,7 +5,9 @@
 		defaults: {
       name: {value: "component in"},
 		},
-		label: "comp in",
+		label: function() {
+			return this.name || "comp start";
+		},
 		inputs:0,
 		outputs:1,
 		icon: "inject.svg",
@@ -23,9 +25,11 @@
 	RED.nodes.registerType('component', {
 		category: 'advanced',
 		color: '#AA8888',
-		label: "component",
+		label: function() {
+			return this.name || "run component";
+		},
 		defaults: {
-      name: {value: "component out"},
+      name: {value: "run component"},
 			selected: {value: ""},
 		},
 		inputs:1,
@@ -58,6 +62,10 @@
 			node.selected = $("#node-input-selected").children("option:selected"). val();
       this.editor.destroy();
       delete node.editor;
+		},
+		oneditcancel: function() {
+			this.editor.destroy();
+			delete this.editor;
 		}
 	});
 </script>
@@ -77,7 +85,9 @@
 	RED.nodes.registerType('component_out', {
 		category: 'advanced',
 		color: '#AA8888',
-		label: "comp out",
+		label: function() {
+			return this.name || "comp return";
+		},
     align: 'right',
 		defaults: {
       name: {value:"comp return"},
