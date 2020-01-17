@@ -1,3 +1,5 @@
+*__DRAFT - WORK IN PROGRESS__*
+
 # node-red-contrib-components
 Components are an alternative approach to create reusable node-red flows and are
 very much inspired by [action flows](https://github.com/Steveorevo/node-red-contrib-actionflows/tree/master/actionflows).
