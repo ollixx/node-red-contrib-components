@@ -4,6 +4,7 @@
 		color: '#AA8888',
 		defaults: {
       name: {value: "component in"},
+			api:{value:[{name: "prop", type: "string"}]},
 		},
 		label: function() {
 			return this.name || "comp start";
@@ -11,7 +12,66 @@
 		inputs:0,
 		outputs:1,
 		icon: "inject.svg",
-		paletteLabel: "comp start"
+		paletteLabel: "comp start",
+		oneditprepare: function() {
+			function resizeRule(item) {
+			}
+			$('#node-input-api-container').css('min-height','250px').css('min-width','450px').editableList({
+	      addItem: function(container,i,opt) {
+	          var property = opt;
+						if (!property.type) {
+							// empty, new item
+							property.type = "any";
+						}
+	          container.css({
+	              overflow: 'hidden',
+	              whiteSpace: 'nowrap'
+	          });
+	          var row1 = $('<div/>').appendTo(container);
+	          var row2 = $('<div/>',{style:"margin-top:8px;"}).appendTo(container);
+	          var row3 = $('<div/>',{style:"margin-top:8px;"}).appendTo(container);
+
+						var propertyName = $('<input/>',{class:"node-input-property-name",style:"margin-right:10px;",type:"text",placeholder:"name"}).appendTo(row1);
+	          var selectField = $('<select/>',{class:"node-input-property-type",style:"width:110px;margin-right:10px;"}).appendTo(row1);
+	          var selectOptions = [{v:"any",l:"any"},{v:"string",l:"string"},{v:"number",l:"number"},{v:"json",l:"json"},{v:"boolean",l:"boolean"}];
+	          for (var i=0; i<selectOptions.length; i++) {
+	              selectField.append($("<option></option>").val(selectOptions[i].v).text(selectOptions[i].l));
+	          }
+						var required = $('<span/>').append($('<input/>',{class:"node-input-property-required",style:"width: 10px; margin-right:10px;",type:"checkbox"})).appendTo(row1);
+
+						selectField.val(property.type);
+						propertyName.val(property.name);
+						required.val(property.required);
+						resizeRule(container);
+				},
+        resizeItem: resizeRule,
+        removable: true,
+        sortable: true
+			});
+
+			if (!this.api) {
+				this.api = [];
+				this.api.push({name: "payload", type: "any"});
+			}
+
+			// set api properties
+			for (var i=0; i<this.api.length; i++) {
+				var property = this.api[i];
+				$("#node-input-api-container").editableList('addItem',property);
+			}
+		},
+		oneditsave: function() {
+      var api = $("#node-input-api-container").editableList('items');
+      var node = this;
+      node.api= [];
+      api.each(function(i) {
+          var property = $(this);
+					var name = property.find(".node-input-property-name").val();
+					var type = property.find(".node-input-property-type").val();
+					var required = property.find(".node-input-property-required").val();
+          node.api.push({name, type, required});
+      });
+  	}
 	});
 </script>
 <script type="text/x-red" data-template-name="component_in">
@@ -19,7 +79,14 @@
         <label for="node-input-name"><i class="icon-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
+		<div class="form-row" style="margin-bottom:0;">
+        <label><i class="fa fa-list"></i> API</label>
+    </div>
+    <div class="form-row node-input-api-container-row">
+        <ol id="node-input-api-container"></ol>
+    </div>
 </script>
+
 
 <script type="text/javascript">
 	RED.nodes.registerType('component', {
@@ -30,13 +97,14 @@
 		},
 		defaults: {
       name: {value: "run component"},
-			selected: {value: ""},
+			targetComponent: {value: ""},
 		},
 		inputs:1,
 		outputs:1,
 		icon: "font-awesome/fa-retweet",
     paletteLabel: "use comp",
 		oneditprepare: function() {
+			console.log("editprepare: ", this);
 			this.editor = RED.editor.createEditor({
 					id: 'node-description-editor',
 					mode: 'ace/mode/markdown',
@@ -49,17 +117,18 @@
 				// console.log("node", node);
 				if (node.type == "component_in") {
 					let option = '<option value="' + node.id + '"';
-					option += (node.id == config.selected) ? ' selected="true"' : "";
+					//option += (node.id == config.targetComponent) ? ' selected="true"' : "";
 					option += '>' + node.name + '</option>';
 					$("#node-input-selected").append(option);
 				}
 			});
-			$("#node-input-selected").val(config.selected);
+			$("#node-input-selected").val(config.targetComponent);
 		},
 		oneditsave: function() {
 			var node = this;
 			$("#node-input-info").val(this.editor.getValue());
-			node.selected = $("#node-input-selected").children("option:selected"). val();
+			console.log("editsave: ", node);
+			node.targetComponent = $("#node-input-selected").children("option:selected"). val();
       this.editor.destroy();
       delete node.editor;
 		},
@@ -69,7 +138,6 @@
 		}
 	});
 </script>
-
 <script type="text/x-red" data-template-name="component">
     <div class="form-row">
         <label for="node-input-name"><i class="icon-tag"></i> Name</label>
@@ -81,6 +149,7 @@
     </div>
 </script>
 
+
 <script type="text/javascript">
 	RED.nodes.registerType('component_out', {
 		category: 'advanced',
@@ -91,11 +160,16 @@
     align: 'right',
 		defaults: {
       name: {value:"comp return"},
-      links: { value: [] }
 		},
 		inputs:1,
 		outputs:0,
 		icon: "font-awesome/fa-mail-reply",
     paletteLabel: "comp return"
 	});
+</script>
+<script type="text/x-red" data-template-name="component_out">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
 </script>

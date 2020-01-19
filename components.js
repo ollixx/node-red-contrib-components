@@ -1,5 +1,3 @@
-console.log("components here");
-
 var log = function(node, message) {
   let m = "";
   if (node.type == "component") {
@@ -16,7 +14,7 @@ var log = function(node, message) {
 
 module.exports = function(RED) {
 
-  const EVENT_PREFIX = "comp:";
+  const EVENT_PREFIX = "comp-";
 
   // first node: componet in
   RED.nodes.registerType("component_in", componentIn);
@@ -38,7 +36,7 @@ module.exports = function(RED) {
 
     // Clean up event handler
     this.on("close",function() {
-        RED.events.removeListener(event, handler);
+        RED.events.removeListener(EVENT_PREFIX, handler);
     });
 
     this.on("input", function(msg) {
@@ -51,25 +49,25 @@ module.exports = function(RED) {
   RED.nodes.registerType("component", component);
   function component(config) {
     var node = this;
-    node.selected = config.selected;
+    node.targetComponent = config.targetComponent;
 
     // Create our node and event handler
     RED.nodes.createNode(this, config);
 
     var handler = function(msg) {
-      console.log("returning event", msg);
+      log(node, "got return event", msg._comp);
       if (typeof msg._comp == "undefined" || msg._comp == null) {
-        throw new Exception("component " + node.id + " received invalid event. msg._comp is undefined or null");
+        throw "component " + node.id + " received invalid event. msg._comp is undefined or null";
       }
       if (typeof msg._comp.stack == "undefined" || msg._comp.stack == null) {
-        throw new Exception("component " + node.id + " received invalid event. msg._comp.stack is undefined or null");
+        throw "component " + node.id + " received invalid event. msg._comp.stack is undefined or null";
       }
       let stack = msg._comp.stack;
       let callerEvent = stack.pop(); // get the last entry, with an id matching this node's id
       if (callerEvent != EVENT_PREFIX + config.id) {
-        throw new Exception("component " + node.id + " received invalid event. id does not match: " + callerEvent);
+        throw "component " + node.id + " received invalid event. id does not match: " + callerEvent;
       }
-      console.log("  stack now", msg._comp.stack.length);
+      log(node, "  stack now", msg._comp.stack.length);
       if (stack.length == 0) {
         // stack is empty, so we are done.
         delete msg._comp;
@@ -95,7 +93,7 @@ module.exports = function(RED) {
 
     // Clean up event handler on close
     this.on("close",function() {
-        RED.events.removeListener(event, handler);
+        RED.events.removeListener(EVENT_PREFIX + config.id, handler);
         node.status({});
     });
 
@@ -118,10 +116,10 @@ module.exports = function(RED) {
         };
       }
       // target node's id (component in) to start flow
-      msg._comp.target = node.selected;
+      msg._comp.target = node.targetComponent;
       msg._comp.stack.push(event)
       log(node, "pushed stack " + msg._comp.stack.length);
-      log(node, "send to " + node.selected);
+      log(node, "send to " + node.targetComponent);
 
       // send event
       RED.events.emit(EVENT_PREFIX, msg);
@@ -139,20 +137,21 @@ module.exports = function(RED) {
 
 
     this.on("input", function(msg) {
-      log(node, "in " + (typeof msg._comp));
+      log(node, "in comp return");
 
       // create / update state for new execution
       if (typeof msg._comp != "undefined") {
         // peek into stack to know where to return:
         let callerEvent = msg._comp.stack.pop();
         msg._comp.stack.push(callerEvent);
-        log(node, "sending return " + callerEvent);
+        log(node, "sending return " + callerEvent + " " + msg._comp.stack);
         // send event
         RED.events.emit(callerEvent, msg);
+      } else {
+        log(node, "return node got no msg._comp. I get back to sleep.");
       }
 
     });
-
   }
 
 }; // end module.exports
