@@ -1,3 +1,7 @@
+<!--
+			******* COMPONENT IN *************
+-->
+
 <script type="text/javascript">
 	RED.nodes.registerType('component_in', {
 		category: 'advanced',
@@ -87,7 +91,9 @@
     </div>
 </script>
 
-
+<!--
+			******* RUN COMPONENT *************
+-->
 <script type="text/javascript">
 	RED.nodes.registerType('component', {
 		category: 'advanced',
@@ -98,6 +104,7 @@
 		defaults: {
       name: {value: "run component"},
 			targetComponent: {value: ""},
+			paramSources: {value: {}}
 		},
 		inputs:1,
 		outputs:1,
@@ -113,6 +120,9 @@
 
 			let config = this;
 
+			let myComponent;
+
+			// select component
 			RED.nodes.eachNode(function(node) {
 				// console.log("node", node);
 				if (node.type == "component_in") {
@@ -120,15 +130,87 @@
 					//option += (node.id == config.targetComponent) ? ' selected="true"' : "";
 					option += '>' + node.name + '</option>';
 					$("#node-input-selected").append(option);
+					if (node.id == config.targetComponent) {
+						myComponent = node;
+					}
 				}
 			});
 			$("#node-input-selected").val(config.targetComponent);
+
+			// set parameters in relation to the selected component's API
+			function resizeRule(item) {
+			}
+			$('#node-input-parameter-container').css('min-height','250px').css('min-width','450px').editableList({
+	      addItem: function(container,i,opt) {
+	          var property = opt;
+						if (!property.type) {
+							// empty, new item
+							property.type = "any";
+						}
+	          container.css({
+	              overflow: 'hidden',
+	              whiteSpace: 'nowrap'
+	          });
+	          var row1 = $('<div/>').appendTo(container);
+	          var row2 = $('<div/>',{style:"margin-top:8px;"}).appendTo(container);
+	          var row3 = $('<div/>',{style:"margin-top:8px;"}).appendTo(container);
+
+						var propertyName = $('<span/>',{class:"node-input-property-name",style:"margin-right:10px;"}, "text1").append(property.name).appendTo(row1);
+						var propertyType = $('<span/>',{class:"node-input-property-type",style:"margin-right:10px;"}, "text1").append(property.type).appendTo(row1);
+	          var selectSource = $('<input/>',{class:"node-input-property-source",style:"margin-right:10px;"}).appendTo(row1);
+						const pTypes = {
+							any: null,
+							json: null,
+							boolean: ["msg", "flow", "global", "bool", "json", "jsonata", "env"],
+							number: ["msg", "flow", "global", "num", "json", "jsonata", "env"],
+							string: ["msg", "flow", "global", "string", "json", "jsonata", "env"],
+						};
+						let pType = pTypes[property.type];
+						selectSource.typedInput({
+    					default: "msg",
+							width: 200,
+							types: pType
+						});
+
+						//selectSource.val(property.type);
+						//propertyName.val(property.name);
+						resizeRule(container);
+				},
+        resizeItem: resizeRule,
+        removable: false,
+        sortable: false,
+				addButton: false
+			});
+
+			// set parameter properties from selected component node's api
+			if (myComponent) {
+				console.log("target", myComponent);
+				let api = myComponent.api;
+				for (var i=0; i<api.length; i++) {
+					var param = api[i];
+					$("#node-input-parameter-container").editableList('addItem', param);
+				}
+			}
+
 		},
 		oneditsave: function() {
 			var node = this;
+
+			// save selected component
 			$("#node-input-info").val(this.editor.getValue());
 			console.log("editsave: ", node);
 			node.targetComponent = $("#node-input-selected").children("option:selected"). val();
+
+			// save parameters from list
+      var params = $("#node-input-parameter-container").editableList('items');
+			node.paramSources = {};
+      params.each(function(i) {
+          var item = $(this);
+					var name = item.find(".node-input-property-name").val();
+					var type = item.find(".node-input-property-type").val();
+					var source = item.find(".node-input-property-source").val();
+          node.paramSources[name] = {name, type, source};
+      });
       this.editor.destroy();
       delete node.editor;
 		},
@@ -147,9 +229,14 @@
       <label for="node-input-selected"><i class="fa fa-random"></i> <span>Component</span></label>
 			<select id="node-input-selected"></select>
     </div>
+		<div class="form-row node-input-parameter-container-row">
+        <ol id="node-input-parameter-container"></ol>
+    </div>
 </script>
 
-
+<!--
+			******* COMPONENT RETURN *************
+-->
 <script type="text/javascript">
 	RED.nodes.registerType('component_out', {
 		category: 'advanced',
