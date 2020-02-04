@@ -18,11 +18,12 @@
 		icon: "inject.svg",
 		paletteLabel: "comp start",
 		oneditprepare: function() {
+			console.log("IN:api", this.api);
 			function resizeRule(item) {
 			}
 			$('#node-input-api-container').css('min-height','250px').css('min-width','450px').editableList({
 	      addItem: function(container, i, property) {
-					console.log("addItem api", property);
+					console.log("IN:addItem item", property);
 						if (!property.type) {
 							// empty, new item
 							property.type = "any";
@@ -46,7 +47,7 @@
 						propertyName.val(property.name);
 						selectField.val(property.type);
 						//$(".node-input-property-required")
-						console.log("req", required);
+						console.log("IN:req", required);
 						required.prop( "checked", property.required);
 						resizeRule(container);
 				},
