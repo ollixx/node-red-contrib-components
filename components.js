@@ -1,4 +1,5 @@
-var log = function(node, message) {
+var log = function(node, ...messages) {
+  console.log(JSON.stringify(messages));
   let m = "";
   if (node.type == "component") {
     m += "c";
@@ -9,7 +10,10 @@ var log = function(node, message) {
   if (node.type == "component_out") {
     m += "co";
   }
-  console.log(m + " " + node.id, message);
+  let arr = [];
+  arr.push(m + " " + node.id);
+  arr.concat(messages);
+  console.log.apply(console, arr);
 }
 
 module.exports = function(RED) {
@@ -50,6 +54,7 @@ module.exports = function(RED) {
   function component(config) {
     var node = this;
     node.targetComponent = config.targetComponent;
+    node.paramSources = config.paramSources;
 
     // Create our node and event handler
     RED.nodes.createNode(this, config);
@@ -120,6 +125,15 @@ module.exports = function(RED) {
       msg._comp.stack.push(event)
       log(node, "pushed stack " + msg._comp.stack.length);
       log(node, "send to " + node.targetComponent);
+
+      // setup msg from parameters
+      for (var paramName in node.paramSources) {
+        let paramSource = node.paramSources[paramName];
+        let val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
+        msg[paramSource.name] = val;
+        log(node, "RUN:eval param", paramSource, val);
+      }
+      log(node, "RUN:before send", msg);
 
       // send event
       RED.events.emit(EVENT_PREFIX, msg);

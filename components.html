@@ -116,7 +116,7 @@
 		icon: "font-awesome/fa-retweet",
     paletteLabel: "use comp",
 		oneditprepare: function() {
-			console.log("editprepare: ", this);
+			console.log("RUN:editprepare: ", this);
 			this.editor = RED.editor.createEditor({
 					id: 'node-description-editor',
 					mode: 'ace/mode/markdown',
@@ -163,7 +163,7 @@
 			}
 			$('#node-input-parameter-container').css('min-height','250px').css('min-width','450px').editableList({
 	      addItem: function(container,i,opt) {
-					console.log("addItem got: ", opt);
+					console.log("RUN:addItem got: ", opt);
 	          var property = opt;
 						if (!property.type) {
 							// empty, new item
@@ -185,14 +185,16 @@
 							json: null,
 							boolean: ["msg", "flow", "global", "bool", "json", "jsonata", "env"],
 							number: ["msg", "flow", "global", "num", "json", "jsonata", "env"],
-							string: ["msg", "flow", "global", "string", "json", "jsonata", "env"],
+							string: ["msg", "flow", "global", "str", "json", "jsonata", "env"]
 						};
 						let pType = pTypes[property.type];
+						console.log("RUN:ptype", pType);
 						selectSource.typedInput({
     					default: "msg",
-							width: 200,
+							width: 100,
 							types: pType
 						});
+						console.log("RUN:selectSource", selectSource);
 
 						selectSource.typedInput('value', property.source);
 						selectSource.typedInput('type', property.sourceType);
@@ -206,7 +208,7 @@
 
 			$("#node-input-selected").change();
 
-			console.log("params stored: ", config.paramSources);
+			console.log("RUN:params stored: ", config.paramSources);
 
 		},
 		oneditsave: function() {
@@ -214,7 +216,7 @@
 
 			// save selected component
 			$("#node-input-info").val(this.editor.getValue());
-			console.log("editsave: ", node);
+			console.log("RUN:editsave: ", node);
 			node.targetComponent = $("#node-input-selected").children("option:selected"). val();
 
 			// save parameters from list
@@ -228,6 +230,7 @@
 					var sourceType = item.find(".node-input-property-source").typedInput('type');
           node.paramSources[name] = {name, type, source, sourceType};
       });
+			console.log("RUN:editsave: paramSources", node.paramSources);
       this.editor.destroy();
       delete node.editor;
 		},
