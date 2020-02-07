@@ -7,80 +7,80 @@
 		category: 'advanced',
 		color: '#AA8888',
 		defaults: {
-      name: {value: "component in"},
-			api:{value:[{name: "prop", type: "string"}]},
+			name: { value: "component in" },
+			api: { value: [{ name: "prop", type: "string" }] },
 		},
-		label: function() {
+		label: function () {
 			return this.name || "comp start";
 		},
-		inputs:0,
-		outputs:1,
+		inputs: 0,
+		outputs: 1,
 		icon: "inject.svg",
 		paletteLabel: "comp start",
-		oneditprepare: function() {
+		oneditprepare: function () {
 			console.log("IN:api", this.api);
 			function resizeRule(item) {
 			}
-			$('#node-input-api-container').css('min-height','250px').css('min-width','450px').editableList({
-	      addItem: function(container, i, property) {
+			$('#node-input-api-container').css('min-height', '250px').css('min-width', '450px').editableList({
+				addItem: function (container, i, property) {
 					console.log("IN:addItem item", property);
-						if (!property.type) {
-							// empty, new item
-							property.type = "any";
-						}
-	          container.css({
-	              overflow: 'hidden',
-	              whiteSpace: 'nowrap'
-	          });
-	          var row1 = $('<div/>').appendTo(container);
-	          var row2 = $('<div/>',{style:"margin-top:8px;"}).appendTo(container);
-	          var row3 = $('<div/>',{style:"margin-top:8px;"}).appendTo(container);
+					if (!property.type) {
+						// empty, new item
+						property.type = "any";
+					}
+					container.css({
+						overflow: 'hidden',
+						whiteSpace: 'nowrap'
+					});
+					var row1 = $('<div/>').appendTo(container);
+					//var row2 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
+					//var row3 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
 
-						var propertyName = $('<input/>',{class:"node-input-property-name",style:"margin-right:10px;",type:"text",placeholder:"name"}).appendTo(row1);
-	          var selectField = $('<select/>',{class:"node-input-property-type",style:"width:110px;margin-right:10px;"}).appendTo(row1);
-	          var selectOptions = [{v:"any",l:"any"},{v:"string",l:"string"},{v:"number",l:"number"},{v:"json",l:"json"},{v:"boolean",l:"boolean"}];
-	          for (var i=0; i<selectOptions.length; i++) {
-	              selectField.append($("<option></option>").val(selectOptions[i].v).text(selectOptions[i].l));
-	          }
-						var required = $('<input/>',{class:"node-input-property-required",style:"width: 10px; margin-right:10px;",type:"checkbox"}).appendTo(row1);
+					var propertyName = $('<input/>', { class: "node-input-property-name", style: "margin-right:10px;", type: "text", placeholder: "name" }).appendTo(row1);
+					var selectField = $('<select/>', { class: "node-input-property-type", style: "width:110px;margin-right:10px;" }).appendTo(row1);
+					var selectOptions = [{ v: "any", l: "any" }, { v: "string", l: "string" }, { v: "number", l: "number" }, { v: "json", l: "json" }, { v: "boolean", l: "boolean" }];
+					for (var i = 0; i < selectOptions.length; i++) {
+						selectField.append($("<option></option>").val(selectOptions[i].v).text(selectOptions[i].l));
+					}
+					var required = $('<input/>', { class: "node-input-property-required", style: "width: 10px; margin-right:10px;", type: "checkbox" }).appendTo(row1);
 
-						propertyName.val(property.name);
-						selectField.val(property.type);
-						//$(".node-input-property-required")
-						console.log("IN:req", required);
-						required.prop( "checked", property.required);
-						resizeRule(container);
+					propertyName.val(property.name);
+					selectField.val(property.type);
+					//$(".node-input-property-required")
+					console.log("IN:req", required);
+					required.prop("checked", property.required);
+					resizeRule(container);
 				},
-        resizeItem: resizeRule,
-        removable: true,
-        sortable: true
+				resizeItem: resizeRule,
+				removable: true,
+				sortable: true
 			});
 
 			if (!this.api) {
 				this.api = [];
-				this.api.push({name: "payload", type: "any"});
+				this.api.push({ name: "payload", type: "any" });
 			}
 
 			// set api properties
-			for (var i=0; i<this.api.length; i++) {
+			for (var i = 0; i < this.api.length; i++) {
 				var property = this.api[i];
-				$("#node-input-api-container").editableList('addItem',property);
+				$("#node-input-api-container").editableList('addItem', property);
 			}
 		},
-		oneditsave: function() {
-      var api = $("#node-input-api-container").editableList('items');
-      var node = this;
-      node.api= [];
-      api.each(function(i) {
-          var property = $(this);
-					var name = property.find(".node-input-property-name").val();
-					var type = property.find(".node-input-property-type").val();
-					var required = property.find(".node-input-property-required")[0].checked;
-					console.log("checkbox", property.find(".node-input-property-required"), required);
-          node.api.push({name, type, required});
-      });
+		oneditsave: function () {
+			var api = $("#node-input-api-container").editableList('items');
+			var node = this;
+			node.api = [];
+			api.each(function (i) {
+				var property = $(this);
+				var name = property.find(".node-input-property-name").val();
+				var type = property.find(".node-input-property-type").val();
+				var required = property.find(".node-input-property-required")[0].checked;
+				console.log("checkbox", property.find(".node-input-property-required"), required);
+				node.api.push({ name, type, required });
+			});
 			console.log("saved api", node.api);
-  	}
+		}
 	});
 </script>
 <script type="text/x-red" data-template-name="component_in">
@@ -103,34 +103,35 @@
 	RED.nodes.registerType('component', {
 		category: 'advanced',
 		color: '#AA8888',
-		label: function() {
+		label: function () {
 			return this.name || "run component";
 		},
 		defaults: {
-      name: {value: "run component"},
-			targetComponent: {value: ""},
-			paramSources: {value: {}}
+			name: { value: "run component" },
+			targetComponent: { value: "" },
+			paramSources: { value: {} }
 		},
-		inputs:1,
-		outputs:1,
+		inputs: 1,
+		outputs: 1,
 		icon: "font-awesome/fa-retweet",
-    paletteLabel: "use comp",
-		oneditprepare: function() {
+		paletteLabel: "use comp",
+		oneditprepare: function () {
 			console.log("RUN:editprepare: ", this);
 			this.editor = RED.editor.createEditor({
-					id: 'node-description-editor',
-					mode: 'ace/mode/markdown',
-					value: $("#node-input-info").val()
+				id: 'node-description-editor',
+				mode: 'ace/mode/markdown',
+				value: $("#node-input-info").val()
 			});
 
 			let config = this;
 
 			let myComponent;
 
-			let updateParameters = function(compNode, paramSources) {
+			let updateParameters = function (compNode, paramSources) {
+				console.log("RUN: updateParameters: node", compNode, paramSources);
 				$("#node-input-parameter-container").editableList('empty');
 				let api = compNode.api;
-				for (var i=0; i<api.length; i++) {
+				for (var i = 0; i < api.length; i++) {
 					var param = api[i];
 					if (paramSources) {
 						param = paramSources[param.name];
@@ -141,8 +142,7 @@
 
 			// select component
 			let componentNodes = {};
-			RED.nodes.eachNode(function(node) {
-				// console.log("node", node);
+			RED.nodes.eachNode(function (node) {
 				if (node.type == "component_in") {
 					let option = '<option value="' + node.id + '"';
 					option += '>' + node.name + '</option>';
@@ -150,91 +150,99 @@
 					componentNodes[node.id] = node;
 				}
 			});
+			console.log("RUN: in nodes", componentNodes);
+			console.log("my target node id", config.targetComponent);
 			$("#node-input-selected").val(config.targetComponent);
-			$("#node-input-selected").change(function(){
-				$("option:selected" ).each(function() {
-					let selectedNodeId = $(this).val();
+			$("#node-input-selected").change(function () {
+				let changeIndex = 1;
+				// console.log("RUN:onChange", changeIndex++, this.value);
+				let selectedNodeId = this.value;
+				// console.log("RUN:onChange: selectedId", selectedNodeId, typeof (selectedNodeId));
+				if (selectedNodeId) {
+					// console.log("RUN:change:", componentNodes, selectedNodeId, config.targetComponent);
 					updateParameters(componentNodes[selectedNodeId], (selectedNodeId == config.targetComponent ? config.paramSources : null));
-    		});
+				}
 			});
 
 			// set parameters in relation to the selected component's API
 			function resizeRule(item) {
 			}
-			$('#node-input-parameter-container').css('min-height','250px').css('min-width','450px').editableList({
-	      addItem: function(container,i,opt) {
+			$('#node-input-parameter-container').css('min-height', '250px').css('min-width', '450px').editableList({
+				addItem: function (container, i, opt) {
 					console.log("RUN:addItem got: ", opt);
-	          var property = opt;
-						if (!property.type) {
-							// empty, new item
-							property.type = "any";
-						}
-	          container.css({
-	              overflow: 'hidden',
-	              whiteSpace: 'nowrap'
-	          });
-	          var row1 = $('<div/>').appendTo(container);
-	          var row2 = $('<div/>',{style:"margin-top:8px;"}).appendTo(container);
-	          var row3 = $('<div/>',{style:"margin-top:8px;"}).appendTo(container);
+					var property = opt;
+					if (!property.type) {
+						// empty, new item
+						property.type = "any";
+					}
+					container.css({
+						overflow: 'hidden',
+						whiteSpace: 'nowrap'
+					});
+					var row1 = $('<div/>').appendTo(container);
+					//var row2 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
+					//var row3 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
 
-						var propertyName = $('<span/>',{class:"node-input-property-name",style:"margin-right:10px;"}).append(property.name).appendTo(row1);
-						var propertyType = $('<span/>',{class:"node-input-property-type",style:"margin-right:10px;"}).append(property.type).appendTo(row1);
-	          var selectSource = $('<input/>',{class:"node-input-property-source",style:"margin-right:10px;"}).appendTo(row1);
-						const pTypes = {
-							any: null,
-							json: null,
-							boolean: ["msg", "flow", "global", "bool", "json", "jsonata", "env"],
-							number: ["msg", "flow", "global", "num", "json", "jsonata", "env"],
-							string: ["msg", "flow", "global", "str", "json", "jsonata", "env"]
-						};
-						let pType = pTypes[property.type];
-						console.log("RUN:ptype", pType);
-						selectSource.typedInput({
-    					default: "msg",
-							width: 100,
-							types: pType
-						});
-						console.log("RUN:selectSource", selectSource);
+					var propertyName = $('<span/>', { class: "node-input-property-name", style: "margin-right:10px;" }).append(property.name).appendTo(row1);
+					var propertyType = $('<span/>', { class: "node-input-property-type", style: "margin-right:10px;" }).append(property.type).appendTo(row1);
+					var selectSource = $('<input/>', { class: "node-input-property-source", style: "margin-right:10px;" }).appendTo(row1);
+					const pTypes = {
+						any: null,
+						json: null,
+						boolean: ["msg", "flow", "global", "bool", "json", "jsonata", "env"],
+						number: ["msg", "flow", "global", "num", "json", "jsonata", "env"],
+						string: ["msg", "flow", "global", "str", "json", "jsonata", "env"]
+					};
+					let pType = pTypes[property.type];
+					console.log("RUN:ptype", pType);
+					selectSource.typedInput({
+						default: "msg",
+						width: 100,
+						types: pType
+					});
+					console.log("RUN:selectSource", selectSource);
 
-						selectSource.typedInput('value', property.source);
-						selectSource.typedInput('type', property.sourceType);
-						resizeRule(container);
+					selectSource.typedInput('value', property.source);
+					selectSource.typedInput('type', property.sourceType);
+					resizeRule(container);
 				},
-        resizeItem: resizeRule,
-        removable: false,
-        sortable: false,
+				resizeItem: resizeRule,
+				removable: false,
+				sortable: false,
 				addButton: false
 			});
 
+			console.log("RUN:beforeInitialChange");
 			$("#node-input-selected").change();
+			console.log("RUN:afterInitialChange");
 
 			console.log("RUN:params stored: ", config.paramSources);
 
 		},
-		oneditsave: function() {
+		oneditsave: function () {
 			var node = this;
 
 			// save selected component
 			$("#node-input-info").val(this.editor.getValue());
 			console.log("RUN:editsave: ", node);
-			node.targetComponent = $("#node-input-selected").children("option:selected"). val();
+			node.targetComponent = $("#node-input-selected").children("option:selected").val();
 
 			// save parameters from list
-      var params = $("#node-input-parameter-container").editableList('items');
+			var params = $("#node-input-parameter-container").editableList('items');
 			node.paramSources = {};
-      params.each(function(i) {
-          var item = $(this);
-					var name = item.find(".node-input-property-name").text();
-					var type = item.find(".node-input-property-type").text();
-					var source = item.find(".node-input-property-source").typedInput('value');
-					var sourceType = item.find(".node-input-property-source").typedInput('type');
-          node.paramSources[name] = {name, type, source, sourceType};
-      });
+			params.each(function (i) {
+				var item = $(this);
+				var name = item.find(".node-input-property-name").text();
+				var type = item.find(".node-input-property-type").text();
+				var source = item.find(".node-input-property-source").typedInput('value');
+				var sourceType = item.find(".node-input-property-source").typedInput('type');
+				node.paramSources[name] = { name, type, source, sourceType };
+			});
 			console.log("RUN:editsave: paramSources", node.paramSources);
-      this.editor.destroy();
-      delete node.editor;
+			this.editor.destroy();
+			delete node.editor;
 		},
-		oneditcancel: function() {
+		oneditcancel: function () {
 			this.editor.destroy();
 			delete this.editor;
 		}
@@ -261,17 +269,17 @@
 	RED.nodes.registerType('component_out', {
 		category: 'advanced',
 		color: '#AA8888',
-		label: function() {
+		label: function () {
 			return this.name || "comp return";
 		},
-    align: 'right',
+		align: 'right',
 		defaults: {
-      name: {value:"comp return"},
+			name: { value: "comp return" },
 		},
-		inputs:1,
-		outputs:0,
+		inputs: 1,
+		outputs: 0,
 		icon: "font-awesome/fa-mail-reply",
-    paletteLabel: "comp return"
+		paletteLabel: "comp return"
 	});
 </script>
 <script type="text/x-red" data-template-name="component_out">
