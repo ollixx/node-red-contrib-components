@@ -10,7 +10,7 @@ can be configured using a variaty of settings like defaults, validation (require
 a description and more (see ideas).
 
 ## features
-* definition nodes (component in and component return) to define a flows
+* definition nodes (component in and component return) to define a flow
 * usage node (component) that uses / executes a component.
 
 ## ideas
