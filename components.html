@@ -18,12 +18,10 @@
 		icon: "inject.svg",
 		paletteLabel: "comp start",
 		oneditprepare: function () {
-			console.log("IN:api", this.api);
 			function resizeRule(item) {
 			}
 			$('#node-input-api-container').css('min-height', '250px').css('min-width', '450px').editableList({
 				addItem: function (container, i, property) {
-					console.log("IN:addItem item", property);
 					if (!property.type) {
 						// empty, new item
 						property.type = "any";
@@ -36,18 +34,18 @@
 					//var row2 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
 					//var row3 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
 
-					var propertyName = $('<input/>', { class: "node-input-property-name", style: "margin-right:10px;", type: "text", placeholder: "name" }).appendTo(row1);
-					var selectField = $('<select/>', { class: "node-input-property-type", style: "width:110px;margin-right:10px;" }).appendTo(row1);
+					var propertyName = $('<input/>', { class: "node-input-property-name", style: "margin-right:10px; width:120px;", type: "text", placeholder: "name" }).appendTo(row1);
+					var selectField = $('<select/>', { class: "node-input-property-type", style: "margin-right:10px; width:100px;" }).appendTo(row1);
 					var selectOptions = [{ v: "any", l: "any" }, { v: "string", l: "string" }, { v: "number", l: "number" }, { v: "json", l: "json" }, { v: "boolean", l: "boolean" }];
 					for (var i = 0; i < selectOptions.length; i++) {
 						selectField.append($("<option></option>").val(selectOptions[i].v).text(selectOptions[i].l));
 					}
-					var required = $('<input/>', { class: "node-input-property-required", style: "width: 10px; margin-right:10px;", type: "checkbox" }).appendTo(row1);
+					//var ro = $('<div/>', {}).appendTo(row1);
+					var required = $('<input/>', {id: "cb_" + i, class: "node-input-property-required", style: "width: 10px; margin-right:10px;", type: "checkbox" }).appendTo(row1);
+					$('<label/>', { 'for': 'cb_' + i, text: "required", style: "width:60px;" }).appendTo(row1);
 
 					propertyName.val(property.name);
 					selectField.val(property.type);
-					//$(".node-input-property-required")
-					console.log("IN:req", required);
 					required.prop("checked", property.required);
 					resizeRule(container);
 				},
@@ -76,10 +74,8 @@
 				var name = property.find(".node-input-property-name").val();
 				var type = property.find(".node-input-property-type").val();
 				var required = property.find(".node-input-property-required")[0].checked;
-				console.log("checkbox", property.find(".node-input-property-required"), required);
 				node.api.push({ name, type, required });
 			});
-			console.log("saved api", node.api);
 		}
 	});
 </script>
@@ -116,7 +112,6 @@
 		icon: "font-awesome/fa-retweet",
 		paletteLabel: "use comp",
 		oneditprepare: function () {
-			console.log("RUN:editprepare: ", this);
 			this.editor = RED.editor.createEditor({
 				id: 'node-description-editor',
 				mode: 'ace/mode/markdown',
@@ -128,13 +123,16 @@
 			let myComponent;
 
 			let updateParameters = function (compNode, paramSources) {
-				console.log("RUN: updateParameters: node", compNode, paramSources);
 				$("#node-input-parameter-container").editableList('empty');
 				let api = compNode.api;
 				for (var i = 0; i < api.length; i++) {
 					var param = api[i];
 					if (paramSources) {
-						param = paramSources[param.name];
+						let paramSource = paramSources[param.name];
+						if (paramSource) {
+							param.source = paramSource.source;
+							param.sourceType = paramSource.sourceType;
+						}
 					}
 					$("#node-input-parameter-container").editableList('addItem', param);
 				}
@@ -150,8 +148,6 @@
 					componentNodes[node.id] = node;
 				}
 			});
-			console.log("RUN: in nodes", componentNodes);
-			console.log("my target node id", config.targetComponent);
 			$("#node-input-selected").val(config.targetComponent);
 			$("#node-input-selected").change(function () {
 				let changeIndex = 1;
@@ -169,7 +165,6 @@
 			}
 			$('#node-input-parameter-container').css('min-height', '250px').css('min-width', '450px').editableList({
 				addItem: function (container, i, opt) {
-					console.log("RUN:addItem got: ", opt);
 					var property = opt;
 					if (!property.type) {
 						// empty, new item
@@ -194,13 +189,11 @@
 						string: ["msg", "flow", "global", "str", "json", "jsonata", "env"]
 					};
 					let pType = pTypes[property.type];
-					console.log("RUN:ptype", pType);
 					selectSource.typedInput({
 						default: "msg",
 						width: 100,
 						types: pType
 					});
-					console.log("RUN:selectSource", selectSource);
 
 					selectSource.typedInput('value', property.source);
 					selectSource.typedInput('type', property.sourceType);
@@ -212,33 +205,45 @@
 				addButton: false
 			});
 
-			console.log("RUN:beforeInitialChange");
 			$("#node-input-selected").change();
-			console.log("RUN:afterInitialChange");
-
-			console.log("RUN:params stored: ", config.paramSources);
 
 		},
 		oneditsave: function () {
 			var node = this;
 
-			// save selected component
+			// save parameter sources for selected component
 			$("#node-input-info").val(this.editor.getValue());
-			console.log("RUN:editsave: ", node);
+			// get target node ID
 			node.targetComponent = $("#node-input-selected").children("option:selected").val();
+
+			// get target node 
+			let targetNode = null;
+			RED.nodes.eachNode(function (n) {
+				if (n.id == node.targetComponent) {
+					targetNode = n;
+				}
+			});
+
+			if (targetNode == null) {
+				throw "could not find target node for ID '" + node.targetComponent + "'";
+			}
 
 			// save parameters from list
 			var params = $("#node-input-parameter-container").editableList('items');
 			node.paramSources = {};
-			params.each(function (i) {
-				var item = $(this);
-				var name = item.find(".node-input-property-name").text();
-				var type = item.find(".node-input-property-type").text();
-				var source = item.find(".node-input-property-source").typedInput('value');
-				var sourceType = item.find(".node-input-property-source").typedInput('type');
-				node.paramSources[name] = { name, type, source, sourceType };
+			targetNode.api.forEach(function(p){
+				node.paramSources[p.name] = p;
 			});
-			console.log("RUN:editsave: paramSources", node.paramSources);
+			params.each(function (i) {
+				let item = $(this);
+				let name = item.find(".node-input-property-name").text();
+				let type = item.find(".node-input-property-type").text();
+				let source = item.find(".node-input-property-source").typedInput('value');
+				let sourceType = item.find(".node-input-property-source").typedInput('type');
+				let param = node.paramSources[name];
+				param.source = source;
+				param.sourceType = sourceType;
+			});
 			this.editor.destroy();
 			delete node.editor;
 		},
