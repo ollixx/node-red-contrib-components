@@ -3,9 +3,12 @@
 -->
 
 <script type="text/javascript">
+	const COMPONENTS_COLOR = "#1dc91d";
+	const COMPONENTS_CATEGORY = "advanced";
+
 	RED.nodes.registerType('component_in', {
-		category: 'advanced',
-		color: '#AA8888',
+		category: COMPONENTS_CATEGORY,
+		color: COMPONENTS_COLOR,
 		defaults: {
 			name: { value: "component in" },
 			api: { value: [{ name: "prop", type: "string" }] },
@@ -97,8 +100,8 @@
 -->
 <script type="text/javascript">
 	RED.nodes.registerType('component', {
-		category: 'advanced',
-		color: '#AA8888',
+		category: COMPONENTS_CATEGORY,
+		color: COMPONENTS_COLOR,
 		label: function () {
 			return this.name || "run component";
 		},
@@ -270,8 +273,8 @@
 -->
 <script type="text/javascript">
 	RED.nodes.registerType('component_out', {
-		category: 'advanced',
-		color: '#AA8888',
+		category: COMPONENTS_CATEGORY,
+		color: COMPONENTS_COLOR,
 		label: function () {
 			return this.name || "comp return";
 		},

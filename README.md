@@ -43,4 +43,7 @@ if checked, the flow will throw an error, if the message part is not set (input 
 * realize more ideas (see above)
 * clean up code
 * rethink the naming of the nodes (feedback is welcome)
-
+* i18n
+* help texts are missing
+* sample flows ( both as code and images in here)
+* show target node's name by default in caller node's label
