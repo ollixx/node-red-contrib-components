@@ -47,3 +47,5 @@ if checked, the flow will throw an error, if the message part is not set (input 
 * help texts are missing
 * sample flows ( both as code and images in here)
 * show target node's name by default in caller node's label
+* use github actions to build the package, create releases and publish to npm
+

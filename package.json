@@ -9,6 +9,7 @@
         "url": "https://github.com/ollixx/node-red-contrib-components.git"
     },
     "keywords": [
+        "node-red",
         "component",
         "reusable",
         "flow",
