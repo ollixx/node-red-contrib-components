@@ -1,10 +1,16 @@
 {
-    "license": "MIT",
     "name": "node-red-contrib-components",
+    "description": "reusable flows with a well defined API. Write components and use them anywhere in your node-red app",
+    "version": "0.1.0",
+    "license": "MIT",
+    "author": "Oliver Charlet <oliver.charlet@clarities.de>",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ollixx/node-red-contrib-components.git"
+    },
     "node-red": {
         "nodes": {
             "components": "components.js"
         }
-    },
-    "version": "0.1.0"
+    }
 }
