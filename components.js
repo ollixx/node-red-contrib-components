@@ -23,8 +23,11 @@ module.exports = function(RED) {
     });
 
     this.on("input", function(msg) {
-        this.send(msg);
-    });
+      console.log("in: ", msg);
+      let stack = msg._comp.stack;
+      node.status({fill:"grey",shape:"ring",text: "last caller: " + stack[stack.length -1] });
+      this.send(msg);
+      });
 
   }
   // second node: component (use a component)
@@ -100,6 +103,7 @@ module.exports = function(RED) {
         let paramSource = node.paramSources[paramName];
         let val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
         if (paramSource.required && (val == null || val == undefined)) {
+          node.status({fill:"red",shape:"ring",text: "required: '" + paramSource.name + "'" });
           throw "component parameter '" + paramSource.name + "' is required, but no value found.";
         } 
         msg[paramSource.name] = val;

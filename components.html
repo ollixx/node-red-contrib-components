@@ -126,7 +126,7 @@
 				$("#node-input-parameter-container").editableList('empty');
 				let api = compNode.api;
 				for (var i = 0; i < api.length; i++) {
-					var param = api[i];
+					var param = $.extend({}, api[i]);
 					if (paramSources) {
 						let paramSource = paramSources[param.name];
 						if (paramSource) {
@@ -151,11 +151,8 @@
 			$("#node-input-selected").val(config.targetComponent);
 			$("#node-input-selected").change(function () {
 				let changeIndex = 1;
-				// console.log("RUN:onChange", changeIndex++, this.value);
 				let selectedNodeId = this.value;
-				// console.log("RUN:onChange: selectedId", selectedNodeId, typeof (selectedNodeId));
 				if (selectedNodeId) {
-					// console.log("RUN:change:", componentNodes, selectedNodeId, config.targetComponent);
 					updateParameters(componentNodes[selectedNodeId], (selectedNodeId == config.targetComponent ? config.paramSources : null));
 				}
 			});
@@ -178,9 +175,9 @@
 					//var row2 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
 					//var row3 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
 
-					var propertyName = $('<span/>', { class: "node-input-property-name", style: "margin-right:10px;" }).append(property.name).appendTo(row1);
-					var propertyType = $('<span/>', { class: "node-input-property-type", style: "margin-right:10px;" }).append(property.type).appendTo(row1);
-					var selectSource = $('<input/>', { class: "node-input-property-source", style: "margin-right:10px;" }).appendTo(row1);
+					var propertyName = $('<span/>', { class: "node-input-property-name", style: "font-weight: bold; margin-right:10px; width:60px; line-height: 34px; float: left;" }).append(property.name).appendTo(row1);
+					var propertyType = $('<span/>', { class: "node-input-property-type", style: "margin-right:10px; width:60px; line-height: 34px;  float: left;" }).append("[" + property.type + "]").appendTo(row1);
+					var selectSource = $('<input/>', { class: "node-input-property-source", style: "margin-right:10px; width:200px;" }).appendTo(row1);
 					const pTypes = {
 						any: null,
 						json: null,
@@ -232,7 +229,7 @@
 			var params = $("#node-input-parameter-container").editableList('items');
 			node.paramSources = {};
 			targetNode.api.forEach(function(p){
-				node.paramSources[p.name] = p;
+				node.paramSources[p.name] = $.extend({}, p);
 			});
 			params.each(function (i) {
 				let item = $(this);
@@ -241,6 +238,7 @@
 				let source = item.find(".node-input-property-source").typedInput('value');
 				let sourceType = item.find(".node-input-property-source").typedInput('type');
 				let param = node.paramSources[name];
+				console.log("check: ", param);
 				param.source = source;
 				param.sourceType = sourceType;
 			});
