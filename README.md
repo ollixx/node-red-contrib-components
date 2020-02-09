@@ -37,6 +37,7 @@ if checked, the flow will throw an error, if the message part is not set (input 
 * multiple output ports. When using more than one ```component_return``` node, the caller node automatically exposes each of them as a separate output port. This can be statically analysed by parsing the ```component_in``` node's wires.
 * support more parameter types ( Buffer, ... )
 * support json schema. Could be used as a new parameter type or for validation.
+* have an optional second ouput port on the caller node, that is used on validation errors (e.g. required param missing).
 
 ## todos
 * write tests
