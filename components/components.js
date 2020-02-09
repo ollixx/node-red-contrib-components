@@ -23,7 +23,6 @@ module.exports = function(RED) {
     });
 
     this.on("input", function(msg) {
-      console.log("in: ", msg);
       let stack = msg._comp.stack;
       node.status({fill:"grey",shape:"ring",text: RED._("components.message.lastCaller") + ": " + stack[stack.length -1] });
       this.send(msg);
