@@ -25,7 +25,7 @@ module.exports = function(RED) {
     this.on("input", function(msg) {
       console.log("in: ", msg);
       let stack = msg._comp.stack;
-      node.status({fill:"grey",shape:"ring",text: "last caller: " + stack[stack.length -1] });
+      node.status({fill:"grey",shape:"ring",text: RED._("components.message.lastCaller") + ": " + stack[stack.length -1] });
       this.send(msg);
       });
 
@@ -42,15 +42,18 @@ module.exports = function(RED) {
 
     var handler = function(msg) {
       if (typeof msg._comp == "undefined" || msg._comp == null) {
-        throw "component " + node.id + " received invalid event. msg._comp is undefined or null";
+        throw RED._("components.message.invalid_comp", {nodeId: node.id});
+        // throw "component " + node.id + " received invalid event. msg._comp is undefined or null";
       }
       if (typeof msg._comp.stack == "undefined" || msg._comp.stack == null) {
-        throw "component " + node.id + " received invalid event. msg._comp.stack is undefined or null";
+        throw RED._("components.message.invalid_stack", {nodeId: node.id});
+        // throw "component " + node.id + " received invalid event. msg._comp.stack is undefined or null";
       }
       let stack = msg._comp.stack;
       let callerEvent = stack.pop(); // get the last entry, with an id matching this node's id
       if (callerEvent != EVENT_PREFIX + config.id) {
-        throw "component " + node.id + " received invalid event. id does not match: " + callerEvent;
+        throw RED._("components.message.invalid_idMatch", {nodeId: node.id, callerId: callerEvent});
+        // throw "component " + node.id + " received invalid event. id does not match: " + callerEvent;
       }
       if (stack.length == 0) {
         // stack is empty, so we are done.
@@ -63,7 +66,7 @@ module.exports = function(RED) {
         stack.push(peek);
         if (peek.component == node.id) {
           sendStartFlow(msg, node);
-          node.status({fill:"green",shape:"ring",text: "running" });
+          node.status({fill:"green",shape:"ring",text: RED._("components.message.running") });
         } else {
           // next entry on stack is for another caller, so we are done.
           node.send(msg);
@@ -81,7 +84,7 @@ module.exports = function(RED) {
 
     this.on("input", function(msg) {
       sendStartFlow(msg, node);
-      node.status({fill:"green",shape:"ring",text: "running" });
+      node.status({fill:"green",shape:"ring",text: RED._("components.message.running") });
     });
 
     function sendStartFlow(msg, node) {
@@ -103,8 +106,9 @@ module.exports = function(RED) {
         let paramSource = node.paramSources[paramName];
         let val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
         if (paramSource.required && (val == null || val == undefined)) {
-          node.status({fill:"red",shape:"ring",text: "required: '" + paramSource.name + "'" });
-          throw "component parameter '" + paramSource.name + "' is required, but no value found.";
+          node.status({fill:"red",shape:"ring",text: RED._("components.label.required") + ": '" + paramSource.name + "'" });
+          throw RED._("components.message.missingProperty", {parameter: paramSource.name});
+          // throw "component parameter '" + paramSource.name + "' is required, but no value found.";
         } 
         msg[paramSource.name] = val;
       }

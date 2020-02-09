@@ -21,7 +21,9 @@
 		icon: "inject.svg",
 		paletteLabel: "comp start",
 		oneditprepare: function () {
+			let i18n = this._;
 			function resizeRule(item) {
+				// not used yet
 			}
 			$('#node-input-api-container').css('min-height', '250px').css('min-width', '450px').editableList({
 				addItem: function (container, i, property) {
@@ -35,7 +37,6 @@
 					});
 					var row1 = $('<div/>').appendTo(container);
 					//var row2 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
-					//var row3 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
 
 					var propertyName = $('<input/>', { class: "node-input-property-name", style: "margin-right:10px; width:120px;", type: "text", placeholder: "name" }).appendTo(row1);
 					var selectField = $('<select/>', { class: "node-input-property-type", style: "margin-right:10px; width:100px;" }).appendTo(row1);
@@ -43,9 +44,8 @@
 					for (var i = 0; i < selectOptions.length; i++) {
 						selectField.append($("<option></option>").val(selectOptions[i].v).text(selectOptions[i].l));
 					}
-					//var ro = $('<div/>', {}).appendTo(row1);
 					var required = $('<input/>', {id: "cb_" + i, class: "node-input-property-required", style: "width: 10px; margin-right:10px;", type: "checkbox" }).appendTo(row1);
-					$('<label/>', { 'for': 'cb_' + i, text: "required", style: "width:60px;" }).appendTo(row1);
+					$('<label/>', { 'for': 'cb_' + i, text: i18n("components.label.required"), style: "width:60px;" }).appendTo(row1);
 
 					propertyName.val(property.name);
 					selectField.val(property.type);
@@ -84,11 +84,11 @@
 </script>
 <script type="text/x-red" data-template-name="component_in">
     <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
+        <label for="node-input-name" data-i18n="components.label.name"><i class="icon-tag"></i></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
     </div>
 		<div class="form-row" style="margin-bottom:0;">
-        <label><i class="fa fa-list"></i> API</label>
+        <label data-i18n="components.label.api"><i class="fa fa-list"></i> </label>
     </div>
     <div class="form-row node-input-api-container-row">
         <ol id="node-input-api-container"></ol>
@@ -256,11 +256,11 @@
 </script>
 <script type="text/x-red" data-template-name="component">
     <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
+        <label for="node-input-name" data-i18n="components.label.name"><i class="icon-tag"></i></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
     </div>
     <div class="form-row">
-      <label for="node-input-selected"><i class="fa fa-random"></i> <span>Component</span></label>
+      <label for="node-input-selected" data-i18n="components.label.component"><i class="fa fa-random"></i> <span></span></label>
 			<select id="node-input-selected"></select>
     </div>
 		<div class="form-row node-input-parameter-container-row">
@@ -290,7 +290,7 @@
 </script>
 <script type="text/x-red" data-template-name="component_out">
     <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
+        <label for="node-input-name" data-i18n="components.label.name"><i class="icon-tag"></i></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
     </div>
 </script>

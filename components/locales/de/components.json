@@ -1,0 +1,18 @@
+{
+    "components": {
+        "label": {
+            "api": "API",
+            "component": "Komponente",
+            "name": "Name",
+            "required": "erwartet"
+        },
+        "message": {
+            "invalid_comp": "Komponente '__nodeId__' empfing inkorrektes Event. 'msg._comp' ist 'undefined' oder 'null'",
+            "invalid_stack": "Komponente '__nodeId__' empfing inkorrektes Event. 'msg._comp.stack' ist 'undefined' oder 'null'",
+            "invalid_idMatch": "Komponente '__nodeId__' empfing inkorrektes Event. ID stimmt nicht überein mit: __callerId__",
+            "lastCaller": "letzter Aufruf von",
+            "missingProperty": "Parameter '__parameter__' wird erwartet, hat aber keinen Wert.",
+            "running": "läuft"
+        }
+    }
+}

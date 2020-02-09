@@ -1,0 +1,18 @@
+{
+    "components": {
+        "label": {
+            "api": "API",
+            "component": "Component",
+            "name": "Name",
+            "required": "required"
+        },
+        "message": {
+            "invalid_comp": "component '__nodeId__' received invalid event. 'msg._comp' is 'undefined' or 'null'",
+            "invalid_stack": "component '__nodeId__' received invalid event. 'msg._comp.stack' is 'undefined' or 'null'",
+            "invalid_idMatch": "component '__nodeId__' received invalid event. ID does not match: __callerId__",
+            "lastCaller": "last caller",
+            "missingProperty": "component parameter '__parameter__' is required, but no value was found.",
+            "running": "running"
+        }
+    }
+}

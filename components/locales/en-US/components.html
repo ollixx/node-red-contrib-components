@@ -1,0 +1,33 @@
+<script type="text/html" data-help-name="component_in">
+    <p>Start node for the component's flow</p>
+    <h3>Inputs</h3>
+        <p>
+        The start node defines its expected parameters (aka message parts) through its API. 
+        For each parameter the name and type can be set. 
+        Additionally the parameter can be set to be required.
+        </p>
+ </script>
+
+ <script type="text/html" data-help-name="component">
+    <p>
+        Node, that executes a selected component. 
+        Select one of all defined components in the editor to be executed.
+        After selecting a component, all parameters of the component's API are listed and the user can 
+        define a source to set the parameter from. That saves preparing the message parts by means of change nodes.
+    </p>
+    <p>
+        Required parameters have to be configured with a valid value (not <code>null</code> and not <code>undefined</code>),
+        otherwise an error is shown on executing the component.
+    </p>
+    <h3>Inputs</h3>
+        <p>
+            Each parameter is assigned a value from one of the listed choices.
+        </p>
+ </script>
+
+ <script type="text/html" data-help-name="component_out">
+    <p>
+        End node for the flow of a component.
+        The flow terminates and execution and the resulting message is given back to the calling node
+    </p>
+ </script>
