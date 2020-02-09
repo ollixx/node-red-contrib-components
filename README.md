@@ -38,6 +38,7 @@ if checked, the flow will throw an error, if the message part is not set (input 
 * support more parameter types ( Buffer, ... )
 * support json schema. Could be used as a new parameter type or for validation.
 * have an optional second ouput port on the caller node, that is used on validation errors (e.g. required param missing).
+* allow definition of outgoing message parts in ```component_out```. This might be an alternative to setting "purge" or "pass through" in ```component_in```. This could be seen as the outbound API, as it defines, what the following flows can expect to get passed in the msg coming from the component.
 
 ## todos
 * write tests
