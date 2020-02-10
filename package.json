@@ -19,5 +19,8 @@
         "nodes": {
             "components": "components/components.js"
         }
+    },
+    "devDependencies": {
+        "node-red-node-test-helper": "^0.2.3"
     }
 }

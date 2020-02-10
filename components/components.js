@@ -1,4 +1,4 @@
-module.exports = function(RED) {
+module.exports = function (RED) {
 
   const EVENT_PREFIX = "comp-";
 
@@ -9,24 +9,24 @@ module.exports = function(RED) {
 
     // Create our node and event handler
     RED.nodes.createNode(this, config);
-    var handler = function(msg) {
-        let target = msg._comp ? msg._comp.target : undefined;
-        if (target == node.id) {
-          node.receive(msg);
-        }
+    var handler = function (msg) {
+      let target = msg._comp ? msg._comp.target : undefined;
+      if (target == node.id) {
+        node.receive(msg);
+      }
     }
     RED.events.on(EVENT_PREFIX, handler);
 
     // Clean up event handler
-    this.on("close",function() {
-        RED.events.removeListener(EVENT_PREFIX, handler);
+    this.on("close", function () {
+      RED.events.removeListener(EVENT_PREFIX, handler);
     });
 
-    this.on("input", function(msg) {
+    this.on("input", function (msg) {
       let stack = msg._comp.stack;
-      node.status({fill:"grey",shape:"ring",text: RED._("components.message.lastCaller") + ": " + stack[stack.length -1] });
+      node.status({ fill: "grey", shape: "ring", text: RED._("components.message.lastCaller") + ": " + stack[stack.length - 1] });
       this.send(msg);
-      });
+    });
 
   }
   // second node: component (use a component)
@@ -39,19 +39,19 @@ module.exports = function(RED) {
     // Create our node and event handler
     RED.nodes.createNode(this, config);
 
-    var handler = function(msg) {
+    var handler = function (msg) {
       if (typeof msg._comp == "undefined" || msg._comp == null) {
-        throw RED._("components.message.invalid_comp", {nodeId: node.id});
+        throw RED._("components.message.invalid_comp", { nodeId: node.id });
         // throw "component " + node.id + " received invalid event. msg._comp is undefined or null";
       }
       if (typeof msg._comp.stack == "undefined" || msg._comp.stack == null) {
-        throw RED._("components.message.invalid_stack", {nodeId: node.id});
+        throw RED._("components.message.invalid_stack", { nodeId: node.id });
         // throw "component " + node.id + " received invalid event. msg._comp.stack is undefined or null";
       }
       let stack = msg._comp.stack;
       let callerEvent = stack.pop(); // get the last entry, with an id matching this node's id
       if (callerEvent != EVENT_PREFIX + config.id) {
-        throw RED._("components.message.invalid_idMatch", {nodeId: node.id, callerId: callerEvent});
+        throw RED._("components.message.invalid_idMatch", { nodeId: node.id, callerId: callerEvent });
         // throw "component " + node.id + " received invalid event. id does not match: " + callerEvent;
       }
       if (stack.length == 0) {
@@ -65,7 +65,7 @@ module.exports = function(RED) {
         stack.push(peek);
         if (peek.component == node.id) {
           sendStartFlow(msg, node);
-          node.status({fill:"green",shape:"ring",text: RED._("components.message.running") });
+          node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") });
         } else {
           // next entry on stack is for another caller, so we are done.
           node.send(msg);
@@ -76,14 +76,14 @@ module.exports = function(RED) {
     RED.events.on(EVENT_PREFIX + config.id, handler);
 
     // Clean up event handler on close
-    this.on("close",function() {
-        RED.events.removeListener(EVENT_PREFIX + config.id, handler);
-        node.status({});
+    this.on("close", function () {
+      RED.events.removeListener(EVENT_PREFIX + config.id, handler);
+      node.status({});
     });
 
-    this.on("input", function(msg) {
+    this.on("input", function (msg) {
       sendStartFlow(msg, node);
-      node.status({fill:"green",shape:"ring",text: RED._("components.message.running") });
+      node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") });
     });
 
     function sendStartFlow(msg, node) {
@@ -102,14 +102,24 @@ module.exports = function(RED) {
 
       // setup msg from parameters
       for (var paramName in node.paramSources) {
-        let paramSource = node.paramSources[paramName];
-        let val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
-        if (paramSource.required && (val == null || val == undefined)) {
-          node.status({fill:"red",shape:"ring",text: RED._("components.label.required") + ": '" + paramSource.name + "'" });
-          throw RED._("components.message.missingProperty", {parameter: paramSource.name});
-          // throw "component parameter '" + paramSource.name + "' is required, but no value found.";
-        } 
-        msg[paramSource.name] = val;
+        try {
+          let paramSource = node.paramSources[paramName];
+          if (typeof (paramSource) == "string" && paramSource.length == 0) {
+            paramSource = null;
+          }
+          let val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
+          if (val == null || val == undefined) {
+            if (paramSource.required) {
+              node.status({ fill: "red", shape: "ring", text: RED._("components.label.required") + ": '" + paramSource.name + "'" });
+              throw RED._("components.message.missingProperty", { parameter: paramSource.name });
+              // throw "component parameter '" + paramSource.name + "' is required, but no value found.";
+            }
+          } else {
+            msg[paramSource.name] = val;
+          }
+        } catch (err) {
+          console.log("err in sendStartFlow", err);
+        }
       }
 
       // send event
@@ -127,7 +137,7 @@ module.exports = function(RED) {
     RED.nodes.createNode(this, config);
 
 
-    this.on("input", function(msg) {
+    this.on("input", function (msg) {
 
       // create / update state for new execution
       if (typeof msg._comp != "undefined") {
