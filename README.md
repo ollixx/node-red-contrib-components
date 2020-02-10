@@ -37,6 +37,9 @@ if checked, the flow will throw an error, if the message part is not set (input 
 * multiple output ports. When using more than one ```component_return``` node, the caller node automatically exposes each of them as a separate output port. This can be statically analysed by parsing the ```component_in``` node's wires.
 * support more parameter types ( Buffer, ... )
 * support json schema. Could be used as a new parameter type or for validation.
+* have an optional second ouput port on the caller node, that is used on validation errors (e.g. required param missing).
+* allow definition of outgoing message parts in ```component_out```. This might be an alternative to setting "purge" or "pass through" in ```component_in```. This could be seen as the outbound API, as it defines, what the following flows can expect to get passed in the msg coming from the component.
+* use ```enum``` as another possible type for parameters. The enumeration values would have to be defined either in an editable list, an array of strings (either pasted in the parameter editor or set by editableType field) or an object (keys would be the enum values, but would allow to access a structured object for each enum value).
 
 ## todos
 * write tests
