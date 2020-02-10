@@ -21,6 +21,12 @@
         }
     },
     "devDependencies": {
+        "mocha": "^7.0.1",
+        "node-red": "^1.0.3",
         "node-red-node-test-helper": "^0.2.3"
+    },
+    "dependencies": {},
+    "scripts": {
+        "test": "mocha components/test/*_spec.js"
     }
 }

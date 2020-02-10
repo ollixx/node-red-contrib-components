@@ -104,15 +104,17 @@ module.exports = function (RED) {
       for (var paramName in node.paramSources) {
         try {
           let paramSource = node.paramSources[paramName];
-          if (typeof (paramSource) == "string" && paramSource.length == 0) {
-            paramSource = null;
+          let sourceType = paramSource.sourceType;
+          let val = null;
+          // an empty, optional parameter is evaluated only, if the source type is "string".
+          // In that case, the parameter is set(!). It is not put into the message in all other cases.
+          if (paramSource.source.length > 0 || sourceType == "str" ) {
+            val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
           }
-          let val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
           if (val == null || val == undefined) {
             if (paramSource.required) {
               node.status({ fill: "red", shape: "ring", text: RED._("components.label.required") + ": '" + paramSource.name + "'" });
               throw RED._("components.message.missingProperty", { parameter: paramSource.name });
-              // throw "component parameter '" + paramSource.name + "' is required, but no value found.";
             }
           } else {
             msg[paramSource.name] = val;
