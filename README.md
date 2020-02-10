@@ -42,8 +42,9 @@ if checked, the flow will throw an error, if the message part is not set (input 
 * use ```enum``` as another possible type for parameters. The enumeration values would have to be defined either in an editable list, an array of strings (either pasted in the parameter editor or set by editableType field) or an object (keys would be the enum values, but would allow to access a structured object for each enum value).
 
 ## todos
-* write tests
+* write more tests
 * realize more ideas (see above)
+* redo README
 * clean up code
 * rethink the naming of the nodes (feedback is welcome)
 * sample flows ( both as code and images in here)
