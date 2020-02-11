@@ -39,44 +39,34 @@ module.exports = function (RED) {
     // Create our node and event handler
     RED.nodes.createNode(this, config);
 
-    var handler = function (msg, send, done) {
+    var handler = function (msg, send) {
       if (typeof msg._comp == "undefined" || msg._comp == null) {
         throw RED._("components.message.invalid_comp", { nodeId: node.id });
-        // throw "component " + node.id + " received invalid event. msg._comp is undefined or null";
       }
       if (typeof msg._comp.stack == "undefined" || msg._comp.stack == null) {
         throw RED._("components.message.invalid_stack", { nodeId: node.id });
-        // throw "component " + node.id + " received invalid event. msg._comp.stack is undefined or null";
       }
       let stack = msg._comp.stack;
       let callerEvent = stack.pop(); // get the last entry, with an id matching this node's id
       if (callerEvent != EVENT_PREFIX + config.id) {
         throw RED._("components.message.invalid_idMatch", { nodeId: node.id, callerId: callerEvent });
-        // throw "component " + node.id + " received invalid event. id does not match: " + callerEvent;
       }
       if (stack.length == 0) {
         // stack is empty, so we are done.
         delete msg._comp;
         node.send(msg);
         node.status({});
-        done();
       } else {
         // check, if the next entry in the stack is from this node
         let peek = stack.pop();
         stack.push(peek);
         if (peek.component == node.id) {
-          try {
-            sendStartFlow(msg, node);
-            node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") })
-            done();
-          } catch (err) {
-            done(err);
-          }
+          sendStartFlow(msg, node);
+          node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") })
         } else {
           // next entry on stack is for another caller, so we are done.
           node.send(msg);
           node.status({});
-          done();
         }
       }
     }
@@ -88,11 +78,10 @@ module.exports = function (RED) {
       node.status({});
     });
 
-    this.on("input", function (msg, send, done) {
+    this.on("input", function (msg, send) {
       console.log("input");
       sendStartFlow(msg, node);
       node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") });
-      done();
     });
 
     function sendStartFlow(msg, node) {
