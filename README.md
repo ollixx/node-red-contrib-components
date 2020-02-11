@@ -6,10 +6,11 @@ very much inspired by [action flows](https://github.com/Steveorevo/node-red-cont
 
 ## Motivation
 I love node-red and I try do solve mostly every programmable problem with it. Some projects can get 
-really complicated and having 20 tabs with hundreds of nodes need some more structure. Components always
-have been my idea, although subflows do their job really good. But they tend to be more cumbersome and less flexible.
-Actionflows are another very nice approach to encapsulate (business) logic and make it reusable. But their definition
-of an API is not mine. So here it is: The first prototype of an advanced set of nodes, that will hopefully help
+really complicated and having 20 tabs with hundreds of nodes needs some more structure. Components always
+have been in my head, despite subflows doing their job really well. But the later tend to be more cumbersome and less flexible.
+[Action flows](https://github.com/Steveorevo/node-red-contrib-actionflows/tree/master/actionflows) are another very nice 
+approach to encapsulate (business) logic and make it reusable. But their definition of an API is not mine. 
+So here it is: The first prototype of an advanced set of nodes, that will hopefully help
 node-red junkies like me to organize their flows.
 
 * Components encapsulate well defined logic and tasks in a way that let's you keep track of what it is doing.
@@ -17,7 +18,7 @@ node-red junkies like me to organize their flows.
 the parts you need.
 * Components make their API truly visible in that they define a set of msg parts, that are expected or optional. The 
 calling node can prepare all the input parts just in one nice list, that is derived from the componet's parameters.
-* In a way, Components break the law of narrow focused nodes, since they are rather generic and traget a broader usage.
+* In a way, Components break the law of narrow focused nodes, since they are rather generic and target a broader usage.
 I can live with that, and I hope many of you node-red enthusiasts enjoy them, too.
 
 ## The Nodes
