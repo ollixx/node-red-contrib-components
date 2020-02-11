@@ -39,7 +39,7 @@ module.exports = function (RED) {
     // Create our node and event handler
     RED.nodes.createNode(this, config);
 
-    var handler = function (msg) {
+    var handler = function (msg, send, done) {
       if (typeof msg._comp == "undefined" || msg._comp == null) {
         throw RED._("components.message.invalid_comp", { nodeId: node.id });
         // throw "component " + node.id + " received invalid event. msg._comp is undefined or null";
@@ -59,17 +59,24 @@ module.exports = function (RED) {
         delete msg._comp;
         node.send(msg);
         node.status({});
+        done();
       } else {
         // check, if the next entry in the stack is from this node
         let peek = stack.pop();
         stack.push(peek);
         if (peek.component == node.id) {
-          sendStartFlow(msg, node);
-          node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") });
+          try {
+            sendStartFlow(msg, node);
+            node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") })
+            done();
+          } catch (err) {
+            done(err);
+          }
         } else {
           // next entry on stack is for another caller, so we are done.
           node.send(msg);
           node.status({});
+          done();
         }
       }
     }
@@ -81,9 +88,11 @@ module.exports = function (RED) {
       node.status({});
     });
 
-    this.on("input", function (msg) {
+    this.on("input", function (msg, send, done) {
+      console.log("input");
       sendStartFlow(msg, node);
       node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") });
+      done();
     });
 
     function sendStartFlow(msg, node) {
@@ -102,25 +111,21 @@ module.exports = function (RED) {
 
       // setup msg from parameters
       for (var paramName in node.paramSources) {
-        try {
-          let paramSource = node.paramSources[paramName];
-          let sourceType = paramSource.sourceType;
-          let val = null;
-          // an empty, optional parameter is evaluated only, if the source type is "string".
-          // In that case, the parameter is set(!). It is not put into the message in all other cases.
-          if (paramSource.source.length > 0 || sourceType == "str" ) {
-            val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
+        let paramSource = node.paramSources[paramName];
+        let sourceType = paramSource.sourceType;
+        let val = null;
+        // an empty, optional parameter is evaluated only, if the source type is "string".
+        // In that case, the parameter is set(!). It is not put into the message in all other cases.
+        if (paramSource.source.length > 0 || sourceType == "str") {
+          val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
+        }
+        if (val == null || val == undefined) {
+          if (paramSource.required) {
+            node.status({ fill: "red", shape: "ring", text: RED._("components.label.required") + ": '" + paramSource.name + "'" });
+            throw RED._("components.message.missingProperty", { parameter: paramSource.name });
           }
-          if (val == null || val == undefined) {
-            if (paramSource.required) {
-              node.status({ fill: "red", shape: "ring", text: RED._("components.label.required") + ": '" + paramSource.name + "'" });
-              throw RED._("components.message.missingProperty", { parameter: paramSource.name });
-            }
-          } else {
-            msg[paramSource.name] = val;
-          }
-        } catch (err) {
-          console.log("err in sendStartFlow", err);
+        } else {
+          msg[paramSource.name] = val;
         }
       }
 

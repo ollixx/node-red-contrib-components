@@ -2,31 +2,71 @@
 Components are an alternative approach to create reusable node-red flows and are
 very much inspired by [action flows](https://github.com/Steveorevo/node-red-contrib-actionflows/tree/master/actionflows).
 
-Components allow a well defined API, that is configured in the ```component in```
-node. The "API" allows a set of expected incoming message parts. Each of these parameters
-can be configured using the following settings:
+![Components](/images/components.png)
 
-## parameter settings
-#### name
-the name of the message part that the flow expects.
-#### type
-the expected type of the message part. One of:
+## Motivation
+I love node-red and I try do solve mostly every programmable problem with it. Some projects can get 
+really complicated and having 20 tabs with hundreds of nodes need some more structure. Components always
+have been my idea, although subflows do their job really good. But they tend to be more cumbersome and less flexible.
+Actionflows are another very nice approach to encapsulate (business) logic and make it reusable. But their definition
+of an API is not mine. So here it is: The first prototype of an advanced set of nodes, that will hopefully help
+node-red junkies like me to organize their flows.
 
-* any
-* json
-* string
-* number
-* boolean
+* Components encapsulate well defined logic and tasks in a way that let's you keep track of what it is doing.
+* Components are a very compact way to prepare the ```msg```, pass it to a "black box" flow and get it back with just
+the parts you need.
+* Components make their API truly visible in that they define a set of msg parts, that are expected or optional. The 
+calling node can prepare all the input parts just in one nice list, that is derived from the componet's parameters.
+* In a way, Components break the law of narrow focused nodes, since they are rather generic and traget a broader usage.
+I can live with that, and I hope many of you node-red enthusiasts enjoy them, too.
 
-#### required
-if checked, the flow will throw an error, if the message part is not set (input value is null or undefined).
+## The Nodes
+### component_in - Start of a Component flow
+![Component input node](/images/component_in.png)
 
+This input node is the starting point of an reusable flow. It allows to set a list of parameters, that it expects.
+Every parameter is defined by its name, a type and a flag to define it as required or optional.
 
-## features
+### component_out - End of the flow
+![Component output node](/images/component_out.png)
+
+Until now, this node is an ordinary one, just returning the ```msg``` to the calling node. In versions to come, it will
+also allow to set some options like purging unwanted or temporary parts from the final ```msg```.
+
+### component - the calling node
+
+![Component caller node](/images/component.png)
+
+To use a prepared Component, this node is setup. It must be configured in accordance with the Component's parameter list, so
+that at least all required ```msg``` parts are connected to either of the known options also presented in the honorable change node:
+* parts in msg, flow context, global context
+* constants of types boolean, number, string, timestamp, Buffer and json
+* jsonata or regular expressions
+* environment variables
+* other nodes
+
+Until now only required parameters are validated against null, undefined and empty string. More validation and other features are to come.
+
+### Install
+node-red-contrib-components can be install using the node-red editor's pallete or by running npm in the console:
+
+``` bash
+npm install node-red-contrib-components
+```
+
+### Exmaples
+I am still working on publishing more example flows to accelerate getting Components to work. It's on my todo list (see below).
+
+## Implemented features
 * definition nodes (component_in and component return) to define a flow, that represents a resusable component.
 * usage node (component) that uses / executes a component.
+* configure an API like list of parameters the flow expects.
+* configure the calling node to fulfill the API by passing in matching values
+* validate required parameters
+* i18n (US and german only - feel free to PR you favourite language)
+* Some rudimentary unit tests
 
-## ideas
+## Ideas, not yet done
 * filter the incoming message, so certain parts are purged before executing the component
 * hide well defined parts of the incoming message, so that the flow inside the component will not see or overwrite them. After the flow is left, the returned message will be reset such, that the initial parts are visible again.
 * parameter setting "pass through". If set, the message part is hidden inside the component flow. Its initial value is overwritten by the value set in the caller node. After the return, the message part is restored with the initial, passed through value. The value is stored inside the ```_comp``` message part, that transports component meta data.
@@ -41,7 +81,7 @@ if checked, the flow will throw an error, if the message part is not set (input 
 * allow definition of outgoing message parts in ```component_out```. This might be an alternative to setting "purge" or "pass through" in ```component_in```. This could be seen as the outbound API, as it defines, what the following flows can expect to get passed in the msg coming from the component.
 * use ```enum``` as another possible type for parameters. The enumeration values would have to be defined either in an editable list, an array of strings (either pasted in the parameter editor or set by editableType field) or an object (keys would be the enum values, but would allow to access a structured object for each enum value).
 
-## todos
+## todos - things identified to be done
 * write more tests
 * realize more ideas (see above)
 * redo README
@@ -50,4 +90,3 @@ if checked, the flow will throw an error, if the message part is not set (input 
 * sample flows ( both as code and images in here)
 * show target node's name by default in caller node's label
 * use github actions to build the package, create releases and publish to npm
-
