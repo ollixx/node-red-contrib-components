@@ -2,7 +2,12 @@ module.exports = function (RED) {
 
   const EVENT_PREFIX = "comp-";
 
-  // first node: componet in
+  /*
+
+        ******* COMPONENT IN *************
+        first node: componet in
+  
+  */
   RED.nodes.registerType("component_in", componentIn);
   function componentIn(config) {
     var node = this;
@@ -28,8 +33,14 @@ module.exports = function (RED) {
       this.send(msg);
     });
 
-  }
-  // second node: component (use a component)
+  } // END: COMPONENT IN
+
+  /*
+    
+    ******* RUN COMPONENT ************
+    second node: component (use a component)
+
+  */
   RED.nodes.registerType("component", component);
   function component(config) {
     var node = this;
@@ -121,9 +132,14 @@ module.exports = function (RED) {
       RED.events.emit(EVENT_PREFIX, msg);
     }
 
-  }
+  } // END: RUN COMPONENT
 
-  // third node: component out
+  /*
+
+  			******* COMPONENT RETURN *************
+        third node: component out
+
+  */
   RED.nodes.registerType("component_out", componentOut);
   function componentOut(config) {
     var node = this;
@@ -144,6 +160,6 @@ module.exports = function (RED) {
       }
 
     });
-  }
+  } // END: COMPONENT RETURN
 
 }; // end module.exports

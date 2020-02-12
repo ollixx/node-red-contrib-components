@@ -89,5 +89,5 @@ I am still working on publishing more example flows to accelerate getting Compon
 * clean up code
 * rethink the naming of the nodes (feedback is welcome)
 * sample flows ( both as code and images in here)
-* show target node's name by default in caller node's label
+* ~~show target node's name by default in caller node's label~~
 * use github actions to build the package, create releases and publish to npm
