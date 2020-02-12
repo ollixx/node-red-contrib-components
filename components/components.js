@@ -79,7 +79,6 @@ module.exports = function (RED) {
     });
 
     this.on("input", function (msg, send) {
-      console.log("input");
       sendStartFlow(msg, node);
       node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") });
     });
@@ -95,7 +94,7 @@ module.exports = function (RED) {
         };
       }
       // target node's id (component in) to start flow
-      msg._comp.target = node.targetComponent;
+      msg._comp.target = node.targetComponent.id;
       msg._comp.stack.push(event)
 
       // setup msg from parameters

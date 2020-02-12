@@ -103,11 +103,11 @@
 		category: COMPONENTS_CATEGORY,
 		color: COMPONENTS_COLOR,
 		label: function () {
-			return this.name || "run component";
+			return this.name || (this.targetComponent ? "-> " + this.targetComponent.name : false) || "run ???";
 		},
 		defaults: {
-			name: { value: "run component" },
-			targetComponent: { value: "" },
+			name: { value: "" },
+			targetComponent: { value: null, required: true },
 			paramSources: { value: {} }
 		},
 		inputs: 1,
@@ -151,12 +151,12 @@
 					componentNodes[node.id] = node;
 				}
 			});
-			$("#node-input-selected").val(config.targetComponent);
+			$("#node-input-selected").val(config.targetComponent.id);
 			$("#node-input-selected").change(function () {
-				let changeIndex = 1;
+				// let changeIndex = 1;
 				let selectedNodeId = this.value;
 				if (selectedNodeId) {
-					updateParameters(componentNodes[selectedNodeId], (selectedNodeId == config.targetComponent ? config.paramSources : null));
+					updateParameters(componentNodes[selectedNodeId], (selectedNodeId == config.targetComponent.id ? config.paramSources : null));
 				}
 			});
 
@@ -214,24 +214,28 @@
 			// save parameter sources for selected component
 			$("#node-input-info").val(this.editor.getValue());
 			// get target node ID
-			node.targetComponent = $("#node-input-selected").children("option:selected").val();
-
+			let selectedComponentId = $("#node-input-selected").children("option:selected").val();
+			
 			// get target node 
-			let targetNode = null;
+			node.targetComponent = null;
 			RED.nodes.eachNode(function (n) {
-				if (n.id == node.targetComponent) {
-					targetNode = n;
+				if (n.id == selectedComponentId) {
+					node.targetComponent = {
+						id: n.id,
+						name: n.name,
+						api: n.api
+					};
 				}
 			});
 
-			if (targetNode == null) {
-				throw "could not find target node for ID '" + node.targetComponent + "'";
+			if (node.targetComponent == null) {
+				throw "could not find target node for ID '" + selectedComponentId + "'";
 			}
-
+			
 			// save parameters from list
 			var params = $("#node-input-parameter-container").editableList('items');
 			node.paramSources = {};
-			targetNode.api.forEach(function(p){
+			node.targetComponent.api.forEach(function(p){
 				node.paramSources[p.name] = $.extend({}, p);
 			});
 			params.each(function (i) {
