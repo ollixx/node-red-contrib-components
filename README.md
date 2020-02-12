@@ -17,7 +17,7 @@ node-red junkies like me to organize their flows.
 * Components are a very compact way to prepare the ```msg```, pass it to a "black box" flow and get it back with just
 the parts you need.
 * Components make their API truly visible in that they define a set of msg parts, that are expected or optional. The 
-calling node can prepare all the input parts just in one nice list, that is derived from the componet's parameters.
+calling node can prepare all the input parts just in one nice list, that is derived from the component's parameters.
 * In a way, Components break the law of narrow focused nodes, since they are rather generic and target a broader usage.
 I can live with that, and I hope many of you node-red enthusiasts enjoy them, too.
 
@@ -55,7 +55,7 @@ node-red-contrib-components can be install using the node-red editor's pallete o
 npm install node-red-contrib-components
 ```
 
-### Exmaples
+### Examples
 I am still working on publishing more example flows to accelerate getting Components to work. It's on my todo list (see below).
 
 ## Implemented features
