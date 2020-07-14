@@ -21,6 +21,8 @@
 		icon: "inject.svg",
 		paletteLabel: "comp start",
 		oneditprepare: function () {
+			try {
+
 			let i18n = this._;
 			function resizeRule(item) {
 				// not used yet
@@ -38,14 +40,14 @@
 					var row1 = $('<div/>').appendTo(container);
 					//var row2 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
 
-					var propertyName = $('<input/>', { class: "node-input-property-name", style: "margin-right:10px; width:120px;", type: "text", placeholder: "name" }).appendTo(row1);
+					var propertyName = $('<input/>', { class: "node-input-property-name", style: "margin-right:10px; min-width:120px;", type: "text", placeholder: "name" }).appendTo(row1);
 					var selectField = $('<select/>', { class: "node-input-property-type", style: "margin-right:10px; width:100px;" }).appendTo(row1);
 					var selectOptions = [{ v: "any", l: "any" }, { v: "string", l: "string" }, { v: "number", l: "number" }, { v: "json", l: "json" }, { v: "boolean", l: "boolean" }];
 					for (var i = 0; i < selectOptions.length; i++) {
 						selectField.append($("<option></option>").val(selectOptions[i].v).text(selectOptions[i].l));
 					}
 					var required = $('<input/>', {id: "cb_" + i, class: "node-input-property-required", style: "width: 10px; margin-right:10px;", type: "checkbox" }).appendTo(row1);
-					$('<label/>', { 'for': 'cb_' + i, text: i18n("components.label.required"), style: "width:60px;" }).appendTo(row1);
+					$('<label/>', { 'for': 'cb_' + i, text: i18n("components.label.required"), style: "width:60px; margin-right: 20px;" }).appendTo(row1);
 
 					propertyName.val(property.name);
 					selectField.val(property.type);
@@ -67,6 +69,11 @@
 				var property = this.api[i];
 				$("#node-input-api-container").editableList('addItem', property);
 			}
+
+		} catch(err) {
+			console.error(err);
+			throw err;
+		}
 		},
 		oneditsave: function () {
 			var api = $("#node-input-api-container").editableList('items');
@@ -115,6 +122,7 @@
 		icon: "font-awesome/fa-retweet",
 		paletteLabel: "use comp",
 		oneditprepare: function () {
+			try {
 			this.editor = RED.editor.createEditor({
 				id: 'node-description-editor',
 				mode: 'ace/mode/markdown',
@@ -142,27 +150,93 @@
 			}
 
 			// select component
+			let tabs = {};
 			let componentNodes = {};
 			RED.nodes.eachNode(function (node) {
 				if (node.type == "component_in") {
-					let option = '<option value="' + node.id + '"';
-					option += '>' + node.name + '</option>';
-					$("#node-input-selected").append(option);
+					if (!tabs[node.z]) {
+						var flow = RED.nodes.workspace(node.z);
+						tabs[node.z] = {label: flow.label, components: {}};					
+					}
+					tabs[node.z].components[node.id] = node;
 					componentNodes[node.id] = node;
 				}
 			});
-			$("#node-input-selected").val(config.targetComponent.id);
+			for (let z in tabs) {
+				let tab = tabs[z];
+				let optionGroup = $('<optgroup label="' + tab.label + '"></optgroup>').appendTo($("#node-input-selected"));
+				for (let n in tab.components) {
+					let node = tab.components[n];
+					let option = '<option value="' + node.id + '"';
+					option += '>' + node.name + '</option>';
+					optionGroup.append(option);
+				}
+			}
+			if (config.targetComponent) {
+				$("#node-input-selected").val(config.targetComponent.id);
+			}
 			$("#node-input-selected").change(function () {
 				// let changeIndex = 1;
 				let selectedNodeId = this.value;
-				if (selectedNodeId) {
+				if (selectedNodeId && config.targetComponent) {
 					updateParameters(componentNodes[selectedNodeId], (selectedNodeId == config.targetComponent.id ? config.paramSources : null));
 				}
 			});
 
-			// set parameters in relation to the selected component's API
-			function resizeRule(item) {
+			if (!$.fn.sizeChanged) {
+					$.fn.sizeChanged = function (handleFunction) {
+					var element = this;
+					var lastWidth = element.width();
+					var lastHeight = element.height();
+
+					setInterval(function () {
+						if (lastWidth === element.width() && lastHeight === element.height())
+							return;
+						if (typeof (handleFunction) == 'function') {
+							handleFunction(element, { width: lastWidth, height: lastHeight },
+										{ width: element.width(), height: element.height() });
+							lastWidth = element.width();
+							lastHeight = element.height();
+						}
+					}, 100);
+
+
+					return element;
+				};
 			}
+
+			function resetWidth(ol) {
+				let itemCount = ol.children().length;
+				let max0 = 0, max1 = 0;
+				for (let i = 0; i < itemCount; i++) {
+					let li = ol.children().eq(i);
+					let div = li.children().eq(0);
+					let w0 = div.children().eq(0).width();
+					if (w0 > max0) max0 = w0;
+					let w1 = div.children().eq(1).width();
+					if (w1 > max1) max1 = w1;
+				};
+				// now set width
+				for (let i = 0; i < itemCount; i++) {
+					let li = ol.children().eq(i);
+					let div = li.children().eq(0);
+					div.children().eq(0).width(max0 + "px");
+					div.children().eq(1).width(max1 + "px");
+					div.children().eq(2).children().eq(1).width((div.width() - max0 - max1 -30) + "px");
+				}
+			}
+
+			// set parameters in relation to the selected component's API
+			function resizeRule(row, item) {
+				//another item, this here was added. so we scan the other items and set the columns accordingly
+				// column 1 + 2: set to width of largest entry
+				// column 3 (input): set to rest of row-width 
+
+				// scan:
+				let ol = item.parent().parent();
+				resetWidth(ol);
+			}
+
 			$('#node-input-parameter-container').css('min-height', '250px').css('min-width', '450px').editableList({
 				addItem: function (container, i, opt) {
 					var property = opt;
@@ -172,15 +246,20 @@
 					}
 					container.css({
 						overflow: 'hidden',
-						whiteSpace: 'nowrap'
+						whiteSpace: 'nowrap',
+						display: "flex"
 					});
-					var row1 = $('<div/>').appendTo(container);
-					//var row2 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
-					//var row3 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
 
-					var propertyName = $('<span/>', { class: "node-input-property-name", style: "font-weight: bold; margin-right:10px; width:60px; line-height: 34px; float: left;" }).append(property.name).appendTo(row1);
+					/*
+					var propertyName = $('<span/>', { class: "node-input-property-name", style: "font-weight: bold; margin-right:10px; min-width:60px; line-height: 34px; float: left;" }).append(property.name).appendTo(row1);
 					var propertyType = $('<span/>', { class: "node-input-property-type", style: "margin-right:10px; width:60px; line-height: 34px;  float: left;" }).append("[" + property.type + "]").appendTo(row1);
 					var selectSource = $('<input/>', { class: "node-input-property-source", style: "margin-right:10px; width:200px;" }).appendTo(row1);
+					*/
+					var propertyName = $('<span/>', { class: "node-input-property-name", style: "font-weight: bold; margin-right:10px; display: inline-block;" }).append(property.name).appendTo(container);
+					var propertyType = $('<span/>', { class: "node-input-property-type", style: "margin-right:10px; line-height: 34px; display: inline-block;" }).append("[" + property.type + "]").appendTo(container);
+					var selectSourceDiv = $('<div/>', { class: "node-input-property-source", style: "margin-right:10px;" }).appendTo(container);
+					var selectSource = $('<input/>', { }).appendTo(selectSourceDiv);
+
 					const pTypes = {
 						any: null,
 						json: null,
@@ -191,22 +270,29 @@
 					let pType = pTypes[property.type];
 					selectSource.typedInput({
 						default: "msg",
-						width: 100,
+						width: "100px",
 						types: pType
 					});
 
 					selectSource.typedInput('value', property.source);
 					selectSource.typedInput('type', property.sourceType);
-					resizeRule(container);
+					resizeRule(i, container);
 				},
 				resizeItem: resizeRule,
 				removable: false,
 				sortable: false,
 				addButton: false
-			});
+			}).sizeChanged(function(element) {
+				let ol = element;
+				resetWidth(ol);
+			})
+
 
 			$("#node-input-selected").change();
-
+		} catch (err) {
+			console.error(err);
+			throw err;
+		}
 		},
 		oneditsave: function () {
 			var node = this;
@@ -214,7 +300,7 @@
 			// save parameter sources for selected component
 			$("#node-input-info").val(this.editor.getValue());
 			// get target node ID
-			let selectedComponentId = $("#node-input-selected").children("option:selected").val();
+			let selectedComponentId = $("#node-input-selected").find("option:selected").val();
 			
 			// get target node 
 			node.targetComponent = null;
