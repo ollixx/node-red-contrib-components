@@ -297,43 +297,48 @@
 		oneditsave: function () {
 			var node = this;
 
-			// save parameter sources for selected component
-			$("#node-input-info").val(this.editor.getValue());
-			// get target node ID
-			let selectedComponentId = $("#node-input-selected").find("option:selected").val();
-			
-			// get target node 
-			node.targetComponent = null;
-			RED.nodes.eachNode(function (n) {
-				if (n.id == selectedComponentId) {
-					node.targetComponent = {
-						id: n.id,
-						name: n.name,
-						api: n.api
-					};
-				}
-			});
+			try {
+				// save parameter sources for selected component
+				$("#node-input-info").val(this.editor.getValue());
+				// get target node ID
+				let selectedComponentId = $("#node-input-selected").find("option:selected").val();
+				
+				// get target node 
+				node.targetComponent = null;
+				RED.nodes.eachNode(function (n) {
+					if (n.id == selectedComponentId) {
+						node.targetComponent = {
+							id: n.id,
+							name: n.name,
+							api: n.api
+						};
+					}
+				});
 
-			if (node.targetComponent == null) {
-				throw "could not find target node for ID '" + selectedComponentId + "'";
+				if (node.targetComponent == null) {
+					throw "could not find target node for ID '" + selectedComponentId + "'";
+				}
+				
+				// save parameters from list
+				var params = $("#node-input-parameter-container").editableList('items');
+				node.paramSources = {};
+				node.targetComponent.api.forEach(function(p){
+					node.paramSources[p.name] = $.extend({}, p);
+				});
+				params.each(function (i) {
+					let item = $(this);
+					let name = item.find(".node-input-property-name").text();
+					let type = item.find(".node-input-property-type").text();
+					let source = item.find(".node-input-property-source input").typedInput('value');
+					let sourceType = item.find(".node-input-property-source input").typedInput('type');
+					let param = node.paramSources[name];
+					param.source = source;
+					param.sourceType = sourceType;
+				});
+			} catch(err) {
+				console.error(err);
+				throw err;
 			}
-			
-			// save parameters from list
-			var params = $("#node-input-parameter-container").editableList('items');
-			node.paramSources = {};
-			node.targetComponent.api.forEach(function(p){
-				node.paramSources[p.name] = $.extend({}, p);
-			});
-			params.each(function (i) {
-				let item = $(this);
-				let name = item.find(".node-input-property-name").text();
-				let type = item.find(".node-input-property-type").text();
-				let source = item.find(".node-input-property-source").typedInput('value');
-				let sourceType = item.find(".node-input-property-source").typedInput('type');
-				let param = node.paramSources[name];
-				param.source = source;
-				param.sourceType = sourceType;
-			});
 			this.editor.destroy();
 			delete node.editor;
 		},
