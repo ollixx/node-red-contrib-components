@@ -4,7 +4,8 @@
             "api": "API",
             "component": "Komponente",
             "name": "Name",
-            "required": "erwartet"
+            "required": "erwartet",
+            "status": "Status"
         },
         "message": {
             "invalid_comp": "Komponente '__nodeId__' empfing inkorrektes Event. 'msg._comp' ist 'undefined' oder 'null'",

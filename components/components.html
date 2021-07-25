@@ -130,7 +130,9 @@
 		defaults: {
 			name: { value: "" },
 			targetComponent: { value: null, required: true },
-			paramSources: { value: {} }
+			paramSources: { value: {} },
+			statuz: { value: "", validate: RED.validators.typedInput("statuzType") },
+			statuzType: { value: "str" },
 		},
 		inputs: 1,
 		outputs: 1,
@@ -198,27 +200,11 @@
 				}
 			});
 
-			if (!$.fn.sizeChanged) {
-					$.fn.sizeChanged = function (handleFunction) {
-					var element = this;
-					var lastWidth = element.width();
-					var lastHeight = element.height();
-
-					setInterval(function () {
-						if (lastWidth === element.width() && lastHeight === element.height())
-							return;
-						if (typeof (handleFunction) == 'function') {
-							handleFunction(element, { width: lastWidth, height: lastHeight },
-										{ width: element.width(), height: element.height() });
-							lastWidth = element.width();
-							lastHeight = element.height();
-						}
-					}, 100);
-
-
-					return element;
-				};
-			}
+			var statusCtrl = $('#node-input-statuz');
+			statusCtrl.typedInput({
+				default: this.statuzType || "str",
+				types: ["msg", "str", "num", "bool", "json", "jsonata"],
+			});
 
 			function resetWidth(ol) {
 				let itemCount = ol.children().length;
@@ -235,24 +221,13 @@
 				for (let i = 0; i < itemCount; i++) {
 					let li = ol.children().eq(i);
 					let div = li.children().eq(0);
-					div.children().eq(0).width(max0 + "px");
-					div.children().eq(1).width(max1 + "px");
+					div.children().eq(0).css("minWidth", max0 + "px");
+					div.children().eq(1).css("minWidth", max1 + "px");
 					div.children().eq(2).children().eq(1).width((div.width() - max0 - max1 -30) + "px");
 				}
 			}
 
-			// set parameters in relation to the selected component's API
-			function resizeRule(row, item) {
-				//another item, this here was added. so we scan the other items and set the columns accordingly
-				// column 1 + 2: set to width of largest entry
-				// column 3 (input): set to rest of row-width 
-
-				// scan:
-				let ol = item.parent().parent();
-				resetWidth(ol);
-			}
-
-			$('#node-input-parameter-container').css('min-height', '250px').css('min-width', '450px').editableList({
+			let container = $('#node-input-parameter-container').css('min-height', '250px').css('min-width', '450px').editableList({
 				addItem: function (container, i, opt) {
 					var property = opt;
 					if (!property.type) {
@@ -288,15 +263,17 @@
 
 					selectSource.typedInput('value', property.source);
 					selectSource.typedInput('type', property.sourceType);
-					resizeRule(i, container);
+
+					resetWidth(container);
 				},
-				resizeItem: resizeRule,
 				removable: false,
 				sortable: false,
 				addButton: false
-			}).sizeChanged(function(element) {
-				resetWidth(element);
 			})
+			this.observer = new ResizeObserver(entries => {
+				resetWidth(container);
+			});
+			this.observer.observe(document.querySelector('#node-input-parameter-container'))
 
 			$("#node-input-selected").change();
 		} catch (err) {
@@ -313,6 +290,8 @@
 				// get target node ID
 				let selectedComponentId = $("#node-input-selected").find("option:selected").val();
 				
+				this.statuzType = $("#node-input-statuz").typedInput('type');
+
 				// get target node 
 				node.targetComponent = null;
 				RED.nodes.eachNode(function (n) {
@@ -328,7 +307,7 @@
 				if (node.targetComponent == null) {
 					throw "could not find target node for ID '" + selectedComponentId + "'";
 				}
-				
+
 				// save parameters from list
 				var params = $("#node-input-parameter-container").editableList('items');
 				node.paramSources = {};
@@ -349,10 +328,18 @@
 				console.error(err);
 				throw err;
 			}
+			if (this.observer) {
+				this.observer.disconnect()
+				this.observer = undefined
+			}
 			this.editor.destroy();
 			delete node.editor;
 		},
 		oneditcancel: function () {
+			if (this.observer) {
+				this.observer.disconnect()
+				this.observer = undefined
+			}
 			this.editor.destroy();
 			delete this.editor;
 		}
@@ -364,10 +351,15 @@
         <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
     </div>
     <div class="form-row">
-      <label for="node-input-selected" data-i18n="components.label.component"><i class="fa fa-random"></i> <span></span></label>
-			<select id="node-input-selected"></select>
-    </div>
-		<div class="form-row node-input-parameter-container-row">
+		<label for="node-input-selected" data-i18n="components.label.component"><i class="fa fa-random"></i> <span></span></label>
+			  <select id="node-input-selected"></select>
+	  </div>
+	  <div class="form-row">
+		<label for="node-input-statuz"><i class="fa fa-dot-circle"></i> <span data-i18n="components.label.status"></span></label>
+        <input id="node-input-statuz" type="text">
+		<input id="node-input-statuz-type" type="hidden">
+	  </div>
+			<div class="form-row node-input-parameter-container-row">
         <ol id="node-input-parameter-container"></ol>
     </div>
 </script>
