@@ -46,9 +46,31 @@ module.exports = function (RED) {
     var node = this;
     node.targetComponent = config.targetComponent;
     node.paramSources = config.paramSources;
+    node.statuz = config.statuz;
+    node.statuzType = config.statuzType;
 
     // Create our node and event handler
     RED.nodes.createNode(this, config);
+
+    function setStatuz(node, msg) {
+      let done = (err, statuz) => {
+        if (typeof(statuz) != "object") {
+          statuz = {text: statuz}
+        }
+        node.status(statuz);
+      }
+      if (node.propertyType === 'jsonata') {
+          RED.util.evaluateJSONataExpression(node.statuz, msg, (err, val) => {
+            //console.log("res jsonata", val)
+            done(undefined, val)
+          });
+      } else {
+          let res = RED.util.evaluateNodeProperty(node.statuz, node.statuzType, node, msg, (err, val) => {
+            // console.log("res default", val)
+            done(undefined, val)
+          });
+      }
+    }
 
     var handler = function (msg, send) {
       if (typeof msg._comp == "undefined" || msg._comp == null) {
@@ -66,7 +88,7 @@ module.exports = function (RED) {
         // stack is empty, so we are done.
         delete msg._comp;
         node.send(msg);
-        node.status({});
+        setStatuz(node, msg);
       } else {
         // check, if the next entry in the stack is from this node
         let peek = stack.pop();
@@ -77,7 +99,7 @@ module.exports = function (RED) {
         } else {
           // next entry on stack is for another caller, so we are done.
           node.send(msg);
-          node.status({});
+          setStatuz(node, msg);
         }
       }
     }
@@ -147,6 +169,34 @@ module.exports = function (RED) {
     // Create our node and event handler
     RED.nodes.createNode(this, config);
 
+    // get all nodes calling me:
+    let getCallingNodes = function (parent) {
+      let callerList = {}
+      RED.nodes.eachNode((child) => {
+        if (child.wires && child.wires.length > 0) {
+            child.wires[0].forEach((nodeid) => {
+                if (nodeid == parent.id) {
+                    callerList[child.id] = child;
+                }
+            })
+        }
+      });
+      return callerList;
+    }
+
+    // look for the component IN that I belong to:
+    let findInComponentNode = function (parent) {
+      let found = {}
+      let callers = getCallingNodes(parent);
+      Object.entries(callers).forEach(([id, node]) => {
+        if (node.type == "component_in") {
+          found[id] = node;
+        } else {
+          found = {...found, ...findInComponentNode(node)}
+        }
+      })
+      return found;
+    }
 
     this.on("input", function (msg) {
 

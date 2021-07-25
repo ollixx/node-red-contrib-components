@@ -4,7 +4,8 @@
             "api": "API",
             "component": "Component",
             "name": "Name",
-            "required": "required"
+            "required": "required",
+            "status": "Status"
         },
         "message": {
             "invalid_comp": "component '__nodeId__' received invalid event. 'msg._comp' is 'undefined' or 'null'",
