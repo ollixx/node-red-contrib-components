@@ -87,6 +87,7 @@ module.exports = function (RED) {
       if (stack.length == 0) {
         // stack is empty, so we are done.
         delete msg._comp;
+        // validate
         node.send(msg);
         setStatuz(node, msg);
       } else {
@@ -131,6 +132,7 @@ module.exports = function (RED) {
       msg._comp.stack.push(event)
 
       // setup msg from parameters
+      let validationErrors = {}
       for (var paramName in node.paramSources) {
         let paramSource = node.paramSources[paramName];
         let sourceType = paramSource.sourceType;
@@ -146,9 +148,56 @@ module.exports = function (RED) {
             throw RED._("components.message.missingProperty", { parameter: paramSource.name });
           }
         } else {
-          msg[paramSource.name] = val;
+          if (paramSource.required) {
+            // validate types
+            let type = typeof(val)
+            switch (paramSource.type) {
+              case "num": {
+                if (type != "number") {
+                  validationErrors[paramName] = RED._("components.message.validationError", 
+                    { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val});
+                }
+                break;
+              }
+              case "string": {
+                if (type != "string") {
+                  validationErrors[paramName] = RED._("components.message.validationError", 
+                    { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val});
+                }
+                break;
+              }
+              case "boolean": {
+                if (type != "boolean") {
+                  validationErrors[paramName] = RED._("components.message.validationError", 
+                    { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val});
+                }
+                break;
+              }
+              case "json": {
+                try {
+                  if (type == "object") {
+                    // we have to check 
+                    val = JSON.stringify(val)
+                  }
+                  let parsed = JSON.parse(val);
+                } catch(err) {
+                  validationErrors[paramName] = RED._("components.message.jsonValidationError", 
+                    { parameter: paramSource.name, value: val});
+                }
+                break;
+              }
+              case "any":
+              default:
+                break;
+            }
+          }
         }
+        msg[paramSource.name] = val;
       }
+      if (Object.keys(validationErrors).length > 0) {
+        throw validationErrors
+      }
+
 
       // send event
       RED.events.emit(EVENT_PREFIX, msg);
