@@ -13,7 +13,9 @@
             "invalid_idMatch": "Komponente '__nodeId__' empfing inkorrektes Event. ID stimmt nicht überein mit: __callerId__",
             "lastCaller": "letzter Aufruf von",
             "missingProperty": "Parameter '__parameter__' wird erwartet, hat aber keinen Wert.",
-            "running": "läuft"
+            "running": "läuft",
+            "validationError": "Ungültiger Parameter '__parameter__'. Erwartet: '__expected__', Empfangen: '__invalidType__'. Wert: '__value__'.",
+            "jsonValidationError": "Ungültiger Parameter '__parameter__'. Wert konnte nicht als JSON validiert werden: '__value__'."
         }
     }
 }
