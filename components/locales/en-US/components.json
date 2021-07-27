@@ -5,7 +5,12 @@
             "component": "Component",
             "name": "Name",
             "required": "required",
-            "status": "Status"
+            "status": "Status",
+            "mode": {
+                "label": "Mode",
+                "default": "Default",
+                "separate": "Separate"
+            }
         },
         "message": {
             "invalid_comp": "component '__nodeId__' received invalid event. 'msg._comp' is 'undefined' or 'null'",

@@ -5,7 +5,12 @@
             "component": "Komponente",
             "name": "Name",
             "required": "erwartet",
-            "status": "Status"
+            "status": "Status",
+            "mode": {
+                "label": "Modus",
+                "default": "Default",
+                "separate": "Einzel"
+            }
         },
         "message": {
             "invalid_comp": "Komponente '__nodeId__' empfing inkorrektes Event. 'msg._comp' ist 'undefined' oder 'null'",

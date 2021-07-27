@@ -34,10 +34,8 @@
 						foundNodes[childid] = child;
 					} else if (child.type == "link out") {
 						// look for more nodes at the other side of the link
-						console.log("link out", child)
 						child.links.forEach((linkid) => {
 							let link = getNodeById(linkid);
-							console.log("link", link)
 							findReturnNodes(linkid, foundNodes)
 						})
 					} else {
@@ -390,11 +388,18 @@
 			// Handle output ports depending on number of componet flow's return nodes.
 			let foundReturnNodes = {}
 			findReturnNodes(node.targetComponent.id, foundReturnNodes)
-			node.outputs = Object.keys(foundReturnNodes).length;
 			node.outLabels = []
 			for (let key in foundReturnNodes) {
-				node.outLabels.push(foundReturnNodes[key].name || key)
+				let retNode = foundReturnNodes[key]
+				if (retNode.mode && retNode.mode == "separate") {
+					node.outLabels.push(retNode.name || key)
+				} else {
+					if (node.outLabels.length == 0 || node.outLabels[0] != "default") {
+						node.outLabels.splice(0, 0, "default")
+					}
+				}
 			}
+			node.outputs = node.outLabels.length;
 			
 			this.editor.destroy();
 			delete node.editor;
@@ -440,7 +445,8 @@
 		},
 		align: 'right',
 		defaults: {
-			name: { value: "comp return" },
+			name: { value: null },
+			mode: { value: "default"}
 		},
 		inputs: 1,
 		outputs: 0,
@@ -452,5 +458,12 @@
     <div class="form-row">
         <label for="node-input-name" data-i18n="components.label.name"><i class="icon-tag"></i></label>
         <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-mode" data-i18n="components.label.mode.label"><i class="icon-tag"></i></label>
+        <select id="node-input-mode">
+			<option value="default" data-i18n="components.label.mode.default" />
+			<option value="separate" data-i18n="components.label.mode.separate" />
+		</select>
     </div>
 </script>
