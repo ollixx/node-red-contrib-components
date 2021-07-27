@@ -6,6 +6,57 @@
 	const COMPONENTS_COLOR = "#1dc91d";
 	const COMPONENTS_CATEGORY = "advanced";
 
+	// find all RETURN component nodes, that are connected to me.
+	// traverses all connected nodes, including link nodes
+	const findReturnNodes = function(nodeid, foundNodes, type = "component_out") {
+		function getNodeById(nodeid) {
+			return RED.nodes.originalFlow().find((node) => {
+				return node.id == nodeid;
+			});
+		}
+		function getNodeConfigById(nodeid) {
+			let found = null;
+			RED.nodes.eachNode((n) => {
+				if (n.id == nodeid) {
+					found = n;
+				}
+			});
+			return found;
+		}
+		// console.log(".", RED.nodes, RED.nodes.originalFlow())
+		let node = getNodeById(nodeid)
+		let config = getNodeConfigById(nodeid)
+		if (node.wires && node.wires.length > 0) {
+			node.wires.forEach((outPort) => {
+				outPort.forEach((childid) => {
+					let child = getNodeById(childid);
+					if (child.type == type) {
+						foundNodes[childid] = child;
+					} else if (child.type == "link out") {
+						// look for more nodes at the other side of the link
+						child.links.forEach((linkid) => {
+							let link = getNodeById(linkid);
+							findReturnNodes(linkid, foundNodes)
+						})
+					} else {
+						// look for connected nodes
+						findReturnNodes(childid, foundNodes)
+					}
+				})
+			});
+		}
+	}
+	const findInstances = function(nodeid, foundNodes) {
+		function getNodeById(nodeid) {
+			return RED.nodes.originalFlow().filter((node) => {
+				return node.type == "component" && node.targetComponent && node.targetComponent.id == nodeid;
+			});
+		}
+		getNodeById(nodeid).forEach((inst) => {
+			foundNodes[inst.id] = inst
+		})
+	}
+
 	RED.nodes.registerType('component_in', {
 		category: COMPONENTS_CATEGORY,
 		color: COMPONENTS_COLOR,
@@ -54,13 +105,6 @@
 					var required = $('<input/>', {id: "cb_" + i, class: "node-input-property-required", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
 					$('<label/>', { text: i18n("components.label.required"), 'for': 'cb_' + i, style: "flex: 2;" }).appendTo(checkRow1);
 
-					// prepare for feature: validate incoming parameters -- NOO! That should be used in the "run component" node
-					/*
-					var checkRow2 = $('<div>', {style: "flex: 0 0 min-content; display: flex; align-items: top"}).appendTo(checkBoxes);
-					$('<input/>', {id: "cb_" + i, class: "node-input-property-validate", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow2);
-					$('<label/>', { text: i18n("components.label.validate"), 'for': 'cb_' + i, style: "flex: 2;" }).appendTo(checkRow2);
-					*/
-
 					propertyName.val(property.name);
 					selectField.val(property.type);
 					required.prop("checked", property.required);
@@ -98,8 +142,7 @@
 				var type = property.find(".node-input-property-type").val();
 				var required = property.find(".node-input-property-required")[0].checked;
 				node.api.push({ name, type, required });
-				// var validate = property.find(".node-input-property-validate")[0].checked;
-				// node.api.push({ name, type, required, validate });
+
 			});
 		}
 	});
@@ -133,9 +176,18 @@
 			paramSources: { value: {} },
 			statuz: { value: "", validate: RED.validators.typedInput("statuzType") },
 			statuzType: { value: "str" },
+			outputs: {value: 1},
+			outLabels: {value: ["default"]}
 		},
 		inputs: 1,
 		outputs: 1,
+		outputLabels: function(index) {
+			if (this.outLabels && this.outLabels.length && this.outLabels.length > 0) {
+				return this.outLabels[index];
+			} else {
+				return "default";
+			}
+		},
 		icon: "font-awesome/fa-retweet",
 		paletteLabel: "use comp",
 		oneditprepare: function () {
@@ -280,6 +332,43 @@
 			console.error(err);
 			throw err;
 		}
+
+			// Handle output ports depending on number of componet flow's return nodes.
+			let node = this
+			let oldLabels = [...node.outLabels]
+			let newLabels = []
+			console.log("old", node.outLabels.length, node.outLabels, oldLabels)
+
+			let foundReturnNodes = {}
+			findReturnNodes(node.targetComponent.id, foundReturnNodes)
+			for (let key in foundReturnNodes) {
+				let retNode = foundReturnNodes[key]
+				if (retNode.mode && retNode.mode == "separate") {
+					newLabels.push(retNode.name || key)
+				} else {
+					if (newLabels.length == 0 || newLabels[0] != "default") {
+						newLabels.splice(0, 0, "default")
+					}
+				}
+			}
+			console.log("neu", newLabels)
+			let diff = newLabels.length != oldLabels.length;
+			// check labels for changes
+			if (!diff) {
+				for (let i in newLabels) {
+					if (newLabels[i] != oldLabels[i]) {
+						diff = true;
+						break;
+					}
+				}
+			}
+			console.log("diff", diff, $("#output-alert"))
+			if (diff) {
+				$("#output-alert").show()
+			} else {
+				$("#output-alert").hide()
+			}
+
 		},
 		oneditsave: function () {
 			var node = this;
@@ -332,6 +421,23 @@
 				this.observer.disconnect()
 				this.observer = undefined
 			}
+
+			// Handle output ports depending on number of componet flow's return nodes.
+			let foundReturnNodes = {}
+			findReturnNodes(node.targetComponent.id, foundReturnNodes)
+			node.outLabels = []
+			for (let key in foundReturnNodes) {
+				let retNode = foundReturnNodes[key]
+				if (retNode.mode && retNode.mode == "separate") {
+					node.outLabels.push(retNode.name || key)
+				} else {
+					if (node.outLabels.length == 0 || node.outLabels[0] != "default") {
+						node.outLabels.splice(0, 0, "default")
+					}
+				}
+			}
+			node.outputs = node.outLabels.length;
+
 			this.editor.destroy();
 			delete node.editor;
 		},
@@ -352,14 +458,18 @@
     </div>
     <div class="form-row">
 		<label for="node-input-selected" data-i18n="components.label.component"><i class="fa fa-random"></i> <span></span></label>
-			  <select id="node-input-selected"></select>
-	  </div>
-	  <div class="form-row">
-		<label for="node-input-statuz"><i class="fa fa-dot-circle"></i> <span data-i18n="components.label.status"></span></label>
+		<select id="node-input-selected"></select>
+	</div>
+	<div class="form-row">
+		<label for="node-input-statuz"><i class="fa fa-dot-circle-o"></i> <span data-i18n="components.label.status"></span></label>
         <input id="node-input-statuz" type="text">
 		<input id="node-input-statuz-type" type="hidden">
-	  </div>
-			<div class="form-row node-input-parameter-container-row">
+	</div>
+	<div class="form-row" style="color: orange" id="output-alert">
+		<label><i class="fa fa-exclamation-triangle"></i> <span data-i18n="components.label.outportChange"></span></label>
+        <span data-i18n="components.message.outportChange"></span>
+	</div>
+	<div class="form-row node-input-parameter-container-row">
         <ol id="node-input-parameter-container"></ol>
     </div>
 </script>
@@ -376,7 +486,8 @@
 		},
 		align: 'right',
 		defaults: {
-			name: { value: "comp return" },
+			name: { value: null },
+			mode: { value: "default"}
 		},
 		inputs: 1,
 		outputs: 0,
@@ -388,5 +499,12 @@
     <div class="form-row">
         <label for="node-input-name" data-i18n="components.label.name"><i class="icon-tag"></i></label>
         <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-mode" data-i18n="components.label.mode.label"><i class="icon-tag"></i></label>
+        <select id="node-input-mode">
+			<option value="default" data-i18n="components.label.mode.default" />
+			<option value="separate" data-i18n="components.label.mode.separate" />
+		</select>
     </div>
 </script>

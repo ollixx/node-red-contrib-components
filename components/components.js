@@ -48,6 +48,7 @@ module.exports = function (RED) {
     node.paramSources = config.paramSources;
     node.statuz = config.statuz;
     node.statuzType = config.statuzType;
+    node.outLabels = config.outLabels;
 
     // Create our node and event handler
     RED.nodes.createNode(this, config);
@@ -61,12 +62,10 @@ module.exports = function (RED) {
       }
       if (node.propertyType === 'jsonata') {
           RED.util.evaluateJSONataExpression(node.statuz, msg, (err, val) => {
-            //console.log("res jsonata", val)
             done(undefined, val)
           });
       } else {
           let res = RED.util.evaluateNodeProperty(node.statuz, node.statuzType, node, msg, (err, val) => {
-            // console.log("res default", val)
             done(undefined, val)
           });
       }
@@ -84,12 +83,10 @@ module.exports = function (RED) {
       if (callerEvent != EVENT_PREFIX + config.id) {
         throw RED._("components.message.invalid_idMatch", { nodeId: node.id, callerId: callerEvent });
       }
+      let returnNode = msg._comp.returnNode;
       if (stack.length == 0) {
         // stack is empty, so we are done.
         delete msg._comp;
-        // validate
-        node.send(msg);
-        setStatuz(node, msg);
       } else {
         // check, if the next entry in the stack is from this node
         let peek = stack.pop();
@@ -97,12 +94,24 @@ module.exports = function (RED) {
         if (peek.component == node.id) {
           sendStartFlow(msg, node);
           node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") })
-        } else {
-          // next entry on stack is for another caller, so we are done.
-          node.send(msg);
-          setStatuz(node, msg);
+          return
         }
       }
+      // find outport
+      if (returnNode.mode == "default") {
+        node.send(msg);
+      } else {
+        msgArr = [];
+        for (let i in node.outLabels) {
+          if (node.outLabels[i] == returnNode.name || node.outLabels[i] == returnNode.id) {
+            msgArr.push(msg);
+          } else {
+            msgArr.push(null);
+          }
+        }
+        node.send(msgArr);
+      }
+      setStatuz(node, msg);
     }
     RED.events.on(EVENT_PREFIX + config.id, handler);
 
@@ -217,6 +226,7 @@ module.exports = function (RED) {
 
     // Create our node and event handler
     RED.nodes.createNode(this, config);
+    node.mode = config.mode;
 
     // get all nodes calling me:
     let getCallingNodes = function (parent) {
@@ -254,6 +264,11 @@ module.exports = function (RED) {
         // peek into stack to know where to return:
         let callerEvent = msg._comp.stack.pop();
         msg._comp.stack.push(callerEvent);
+        msg._comp.returnNode = {
+          id: node.id,
+          mode: node.mode,
+          name: node.name
+        }
         // send event
         RED.events.emit(callerEvent, msg);
       }
