@@ -332,6 +332,43 @@
 			console.error(err);
 			throw err;
 		}
+
+			// Handle output ports depending on number of componet flow's return nodes.
+			let node = this
+			let oldLabels = [...node.outLabels]
+			let newLabels = []
+			console.log("old", node.outLabels.length, node.outLabels, oldLabels)
+
+			let foundReturnNodes = {}
+			findReturnNodes(node.targetComponent.id, foundReturnNodes)
+			for (let key in foundReturnNodes) {
+				let retNode = foundReturnNodes[key]
+				if (retNode.mode && retNode.mode == "separate") {
+					newLabels.push(retNode.name || key)
+				} else {
+					if (newLabels.length == 0 || newLabels[0] != "default") {
+						newLabels.splice(0, 0, "default")
+					}
+				}
+			}
+			console.log("neu", newLabels)
+			let diff = newLabels.length != oldLabels.length;
+			// check labels for changes
+			if (!diff) {
+				for (let i in newLabels) {
+					if (newLabels[i] != oldLabels[i]) {
+						diff = true;
+						break;
+					}
+				}
+			}
+			console.log("diff", diff, $("#output-alert"))
+			if (diff) {
+				$("#output-alert").show()
+			} else {
+				$("#output-alert").hide()
+			}
+
 		},
 		oneditsave: function () {
 			var node = this;
@@ -400,7 +437,7 @@
 				}
 			}
 			node.outputs = node.outLabels.length;
-			
+
 			this.editor.destroy();
 			delete node.editor;
 		},
@@ -421,14 +458,18 @@
     </div>
     <div class="form-row">
 		<label for="node-input-selected" data-i18n="components.label.component"><i class="fa fa-random"></i> <span></span></label>
-			  <select id="node-input-selected"></select>
-	  </div>
-	  <div class="form-row">
-		<label for="node-input-statuz"><i class="fa fa-dot-circle"></i> <span data-i18n="components.label.status"></span></label>
+		<select id="node-input-selected"></select>
+	</div>
+	<div class="form-row">
+		<label for="node-input-statuz"><i class="fa fa-dot-circle-o"></i> <span data-i18n="components.label.status"></span></label>
         <input id="node-input-statuz" type="text">
 		<input id="node-input-statuz-type" type="hidden">
-	  </div>
-			<div class="form-row node-input-parameter-container-row">
+	</div>
+	<div class="form-row" style="color: orange" id="output-alert">
+		<label><i class="fa fa-exclamation-triangle"></i> <span data-i18n="components.label.outportChange"></span></label>
+        <span data-i18n="components.message.outportChange"></span>
+	</div>
+	<div class="form-row node-input-parameter-container-row">
         <ol id="node-input-parameter-container"></ol>
     </div>
 </script>
