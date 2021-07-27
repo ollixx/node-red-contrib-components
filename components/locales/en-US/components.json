@@ -7,7 +7,7 @@
             "required": "required",
             "status": "Status",
             "mode": {
-                "label": "Mode",
+                "label": "Output Port",
                 "default": "Default",
                 "separate": "Separate"
             }
