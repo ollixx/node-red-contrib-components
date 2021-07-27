@@ -6,6 +6,59 @@
 	const COMPONENTS_COLOR = "#1dc91d";
 	const COMPONENTS_CATEGORY = "advanced";
 
+	// find all RETURN component nodes, that are connected to me.
+	// traverses all connected nodes, including link nodes
+	const findReturnNodes = function(nodeid, foundNodes, type = "component_out") {
+		function getNodeById(nodeid) {
+			return RED.nodes.originalFlow().find((node) => {
+				return node.id == nodeid;
+			});
+		}
+		function getNodeConfigById(nodeid) {
+			let found = null;
+			RED.nodes.eachNode((n) => {
+				if (n.id == nodeid) {
+					found = n;
+				}
+			});
+			return found;
+		}
+		// console.log(".", RED.nodes, RED.nodes.originalFlow())
+		let node = getNodeById(nodeid)
+		let config = getNodeConfigById(nodeid)
+		if (node.wires && node.wires.length > 0) {
+			node.wires.forEach((outPort) => {
+				outPort.forEach((childid) => {
+					let child = getNodeById(childid);
+					if (child.type == type) {
+						foundNodes[childid] = child;
+					} else if (child.type == "link out") {
+						// look for more nodes at the other side of the link
+						console.log("link out", child)
+						child.links.forEach((linkid) => {
+							let link = getNodeById(linkid);
+							console.log("link", link)
+							findReturnNodes(linkid, foundNodes)
+						})
+					} else {
+						// look for connected nodes
+						findReturnNodes(childid, foundNodes)
+					}
+				})
+			});
+		}
+	}
+	const findInstances = function(nodeid, foundNodes) {
+		function getNodeById(nodeid) {
+			return RED.nodes.originalFlow().filter((node) => {
+				return node.type == "component" && node.targetComponent && node.targetComponent.id == nodeid;
+			});
+		}
+		getNodeById(nodeid).forEach((inst) => {
+			foundNodes[inst.id] = inst
+		})
+	}
+
 	RED.nodes.registerType('component_in', {
 		category: COMPONENTS_CATEGORY,
 		color: COMPONENTS_COLOR,
@@ -54,13 +107,6 @@
 					var required = $('<input/>', {id: "cb_" + i, class: "node-input-property-required", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
 					$('<label/>', { text: i18n("components.label.required"), 'for': 'cb_' + i, style: "flex: 2;" }).appendTo(checkRow1);
 
-					// prepare for feature: validate incoming parameters -- NOO! That should be used in the "run component" node
-					/*
-					var checkRow2 = $('<div>', {style: "flex: 0 0 min-content; display: flex; align-items: top"}).appendTo(checkBoxes);
-					$('<input/>', {id: "cb_" + i, class: "node-input-property-validate", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow2);
-					$('<label/>', { text: i18n("components.label.validate"), 'for': 'cb_' + i, style: "flex: 2;" }).appendTo(checkRow2);
-					*/
-
 					propertyName.val(property.name);
 					selectField.val(property.type);
 					required.prop("checked", property.required);
@@ -98,8 +144,7 @@
 				var type = property.find(".node-input-property-type").val();
 				var required = property.find(".node-input-property-required")[0].checked;
 				node.api.push({ name, type, required });
-				// var validate = property.find(".node-input-property-validate")[0].checked;
-				// node.api.push({ name, type, required, validate });
+
 			});
 		}
 	});
@@ -133,9 +178,18 @@
 			paramSources: { value: {} },
 			statuz: { value: "", validate: RED.validators.typedInput("statuzType") },
 			statuzType: { value: "str" },
+			outputs: {value: 1},
+			outLabels: {value: ["default"]}
 		},
 		inputs: 1,
 		outputs: 1,
+		outputLabels: function(index) {
+			if (this.outLabels && this.outLabels.length && this.outLabels.length > 0) {
+				return this.outLabels[index];
+			} else {
+				return "default";
+			}
+		},
 		icon: "font-awesome/fa-retweet",
 		paletteLabel: "use comp",
 		oneditprepare: function () {
@@ -332,6 +386,16 @@
 				this.observer.disconnect()
 				this.observer = undefined
 			}
+
+			// Handle output ports depending on number of componet flow's return nodes.
+			let foundReturnNodes = {}
+			findReturnNodes(node.targetComponent.id, foundReturnNodes)
+			node.outputs = Object.keys(foundReturnNodes).length;
+			node.outLabels = []
+			for (let key in foundReturnNodes) {
+				node.outLabels.push(foundReturnNodes[key].name || key)
+			}
+			
 			this.editor.destroy();
 			delete node.editor;
 		},
