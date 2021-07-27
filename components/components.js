@@ -62,12 +62,10 @@ module.exports = function (RED) {
       }
       if (node.propertyType === 'jsonata') {
           RED.util.evaluateJSONataExpression(node.statuz, msg, (err, val) => {
-            //console.log("res jsonata", val)
             done(undefined, val)
           });
       } else {
           let res = RED.util.evaluateNodeProperty(node.statuz, node.statuzType, node, msg, (err, val) => {
-            // console.log("res default", val)
             done(undefined, val)
           });
       }
@@ -80,7 +78,6 @@ module.exports = function (RED) {
       if (typeof msg._comp.stack == "undefined" || msg._comp.stack == null) {
         throw RED._("components.message.invalid_stack", { nodeId: node.id });
       }
-      console.log("return to ", node.id, msg, node)
       let stack = msg._comp.stack;
       let callerEvent = stack.pop(); // get the last entry, with an id matching this node's id
       if (callerEvent != EVENT_PREFIX + config.id) {
