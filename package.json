@@ -13,7 +13,8 @@
         "component",
         "reusable",
         "flow",
-        "api"
+        "api",
+        "subflow"
     ],
     "node-red": {
         "nodes": {
