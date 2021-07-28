@@ -66,6 +66,11 @@ I am still working on publishing more example flows to accelerate getting Compon
 * validate required parameters
 * i18n (US and german only - feel free to PR you favourite language)
 * Some rudimentary unit tests
+* multiple output ports. When using more than one ```component_return``` node, the caller node automatically exposes each of them as a separate output port. This can be statically analysed by parsing the ```component_in``` node's wires. The ```component_return``` node has a new property "Output Ports", that can be set to "separate" or "default". In the later case, the "default" output port is used (for all return nodes on "default")
+* fix layout in parameter lists, both in definition and caller nodes.
+* use github actions to build the package, create releases and publish to npm
+* Allow to set the status in the ```component``` node. See: https://github.com/ollixx/node-red-contrib-components/issues/1
+* Validate incoming message parts in the ```component``` node. Use the types defined in the API to validate the message parts. See https://github.com/ollixx/node-red-contrib-components/issues/2
 
 ## Ideas, not yet done
 * filter the incoming message, so certain parts are purged before executing the component
@@ -75,7 +80,6 @@ I am still working on publishing more example flows to accelerate getting Compon
 * parameter setting "validate". Opens a new line of extra settings for type specific validations (jsonata?)
 * parameter setting "default". Set a default value both for optional and required parameters. 
 * parameter setting "description". write a few infos about what the parameter does in the component.
-* multiple output ports. When using more than one ```component_return``` node, the caller node automatically exposes each of them as a separate output port. This can be statically analysed by parsing the ```component_in``` node's wires.
 * support more parameter types ( Buffer, ... )
 * support json schema. Could be used as a new parameter type or for validation.
 * have an optional second ouput port on the caller node, that is used on validation errors (e.g. required param missing).
@@ -83,11 +87,9 @@ I am still working on publishing more example flows to accelerate getting Compon
 * use ```enum``` as another possible type for parameters. The enumeration values would have to be defined either in an editable list, an array of strings (either pasted in the parameter editor or set by editableType field) or an object (keys would be the enum values, but would allow to access a structured object for each enum value).
 
 ## todos - things identified to be done
-* fix layout in parameter lists, both in definition and caller nodes.
 * write more tests
 * realize more ideas (see above)
-* redo README
 * clean up code
 * rethink the naming of the nodes (feedback is welcome)
 * sample flows ( both as code and images in here)
-* use github actions to build the package, create releases and publish to npm
+* create Change logs for another release (automatically in workflow)
