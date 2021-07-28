@@ -1,47 +1,312 @@
 var should = require("should");
 var helper = require("node-red-node-test-helper");
 var changeNode = require("@node-red/nodes/core/function/15-change");
+var linkNode = require("@node-red/nodes/core/common/60-link");
+var catchNode = require("@node-red/nodes/core/common/25-catch");
 var components = require("../components.js");
 
 helper.init(require.resolve('node-red'));
 
-describe('components in Node', function () {
+var testFlow = [
+    {
+        id: "tab",
+        type: "tab",
+        label: "Test flow"
+    },
+    {
+        id: "run01",
+        "type": "component",
+        "z": "tab",
+        "name": "run 01",
+        "targetComponent": {
+            "id": "in01",
+            "name": "in 01",
+            "api": [
+                {
+                    "name": "name1",
+                    "type": "string",
+                    "required": true
+                },
+                {
+                    "name": "Das ist ein längerer",
+                    "type": "json",
+                    "required": true
+                }
+            ]
+        },
+        "paramSources": {
+            "name1": {
+                "name": "name1",
+                "type": "string",
+                "required": true,
+                "source": "\"Test\"",
+                "sourceType": "jsonata"
+            },
+            "Das ist ein längerer": {
+                "name": "Das ist ein längerer",
+                "type": "json",
+                "required": true,
+                "source": "payload.inner[\"even more\"]",
+                "sourceType": "msg"
+            }
+        },
+        "statuz": "name1",
+        "statuzType": "msg",
+        "outputs": 2,
+        "outLabels": [
+            "default",
+            "ret 01b"
+        ],
+        "wires": [
+            [
+                "debug01"
+            ],
+            [
+                "debug02"
+            ]
+        ]
+    },
+    {
+        "id": "in01",
+        "type": "component_in",
+        "z": "tab",
+        "name": "in 01",
+        "api": [
+            {
+                "name": "name1",
+                "type": "string",
+                "required": true
+            },
+            {
+                "name": "Das ist ein längerer",
+                "type": "json",
+                "required": true
+            }
+        ],
+        "wires": [
+            [
+                "change01"
+            ]
+        ]
+    },
+    {
+        "id": "change01",
+        "type": "change",
+        "z": "tab",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "outer",
+                "pt": "msg",
+                "to": "{\"test\": 42}",
+                "tot": "json"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 320,
+        "y": 320,
+        "wires": [
+            [
+                "run02",
+                "out01b"
+            ]
+        ]
+    },
+    {
+        "id": "run02",
+        "type": "component",
+        "z": "tab",
+        "name": "run 02",
+        "targetComponent": {
+            "id": "in02",
+            "name": "out 02",
+            "api": []
+        },
+        "paramSources": {},
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "ret 02"
+        ],
+        "x": 510,
+        "y": 320,
+        "wires": [
+            [
+                "out01a"
+            ]
+        ]
+    },
+    {
+        "id": "out01a",
+        "type": "component_out",
+        "z": "tab",
+        "name": "ret 01a",
+        "mode": "default",
+        "x": 670,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "out01b",
+        "type": "component_out",
+        "z": "tab",
+        "name": "ret 01b",
+        "mode": "separate",
+        "x": 520,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "in02",
+        "type": "component_in",
+        "z": "tab",
+        "name": "in 02",
+        "api": [],
+        "x": 150,
+        "y": 440,
+        "wires": [
+            [
+                "change02"
+            ]
+        ]
+    },
+    {
+        "id": "change02",
+        "type": "change",
+        "z": "tab",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "inner",
+                "pt": "msg",
+                "to": "23",
+                "tot": "num"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 320,
+        "y": 440,
+        "wires": [
+            [
+                "linkOut01"
+            ]
+        ]
+    },
+    {
+        "id": "linkOut01",
+        "type": "link out",
+        "z": "tab",
+        "name": "link out 01",
+        "links": [
+            "linkIn01"
+        ],
+        "x": 435,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "linkIn01",
+        "type": "link in",
+        "z": "tab",
+        "name": "link in 01",
+        "links": [
+            "linkOut01"
+        ],
+        "x": 535,
+        "y": 440,
+        "wires": [
+            [
+                "out02"
+            ]
+        ]
+    },
+    {
+        "id": "out02",
+        "type": "component_out",
+        "z": "tab",
+        "name": "ret 02",
+        "mode": "separate",
+        "x": 630,
+        "y": 440,
+        "wires": []
+    },
+    { id: "debug01", type: "helper" },
+    { id: "debug02", type: "helper" }
+]
 
-    beforeEach(function (done) {
+describe('components embedded flow', function () {
+
+    before(function (done) {
         helper.startServer(done);
     });
 
-    afterEach(function (done) {
-        helper.unload();
+    after(function (done) {
         helper.stopServer(done);
     });
 
+    afterEach(function () {
+        helper.unload();
+    });
+
     it('should basically work', function (done) {
-        var flow = [
-            { id: "n1", type: "component_in", name: "start component", wires: [["nD"]] },
-            { id: "nD", type: "change", name: "", rules: [{ t: "set", p: "payload", pt: "msg", to: "1", tot: "str" }], reg: false, "wires": [["n2"]] },
-            { id: "n2", type: "component_out", name: "end component", wires: [] },
-            { id: "n3", type: "component", name: "use component", targetComponent: "n1", paramSources: {}, wires: [["nH"]] },
-            { id: "nH", type: "helper" }
-        ];
-        helper.load([components, changeNode], flow, function () {
-            var n1 = helper.getNode("n1");
-            n1.should.be.not.null;
-            n1.should.have.property('name', 'start component');
-            var nH = helper.getNode("nH");
-            nH.on("input", function (msg) {
+        helper.load([components, changeNode, linkNode, catchNode], testFlow, {}, function () {
+            /*
+            var in01 = helper.getNode("in01");
+            in01.on("input", function(msg) {
+                console.log("in01")
+            })
+
+            var run01 = helper.getNode("run01");
+            run01.on("input", function(msg) {
+                console.log("run01")
+            })
+            */
+
+            var debug01 = helper.getNode("debug01");
+            debug01.on("input", function (msg) {
                 try {
-                    msg.should.have.property('payload', '1');
+                    msg.should.have.property("inner")
+                } catch (e) {
+                    done(e);
+                }
+            });
+            var debug02 = helper.getNode("debug02");
+            debug02.on("input", function (msg) {
+                try {
+                    msg.should.have.property("outer")
                     done();
                 } catch (e) {
                     done(e);
                 }
             });
-            var n3 = helper.getNode("n3");
-            n3.receive({ payload: "2" });
+            var run01 = helper.getNode("run01");
+            run01.receive({ 
+                payload: {
+                    inner: {
+                        "even more": 999
+                    }
+                } 
+            });
+
+            //var n3 = helper.getNode("n3");
+            // n3.receive({ payload: "2" });
+
+            // debug01.receive({ payload: "2" })
         });
     });
 
+    /*
     it('should work with empty optional parameters', function (done) {
         var flow = [
             {
@@ -119,8 +384,7 @@ describe('components in Node', function () {
             n3.receive({ payload: "2" });
         });
     });
-
-    /*
+ 
     it('should work with empty required parameters', function (done) {
         var flow = [
             {
