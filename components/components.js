@@ -121,7 +121,7 @@ module.exports = function (RED) {
       node.status({});
     });
 
-    this.on("input", function (msg, send) {
+    this.on("input", function (msg) {
       sendStartFlow(msg, node);
       node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") });
     });
@@ -188,7 +188,7 @@ module.exports = function (RED) {
                     // we have to check 
                     val = JSON.stringify(val)
                   }
-                  let parsed = JSON.parse(val);
+                  val = JSON.parse(val);
                 } catch(err) {
                   validationErrors[paramName] = RED._("components.message.jsonValidationError", 
                     { parameter: paramSource.name, value: val});
@@ -206,7 +206,6 @@ module.exports = function (RED) {
       if (Object.keys(validationErrors).length > 0) {
         throw validationErrors
       }
-
 
       // send event
       RED.events.emit(EVENT_PREFIX, msg);
