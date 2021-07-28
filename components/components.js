@@ -46,9 +46,30 @@ module.exports = function (RED) {
     var node = this;
     node.targetComponent = config.targetComponent;
     node.paramSources = config.paramSources;
+    node.statuz = config.statuz;
+    node.statuzType = config.statuzType;
+    node.outLabels = config.outLabels;
 
     // Create our node and event handler
     RED.nodes.createNode(this, config);
+
+    function setStatuz(node, msg) {
+      let done = (err, statuz) => {
+        if (typeof(statuz) != "object") {
+          statuz = {text: statuz}
+        }
+        node.status(statuz);
+      }
+      if (node.propertyType === 'jsonata') {
+          RED.util.evaluateJSONataExpression(node.statuz, msg, (err, val) => {
+            done(undefined, val)
+          });
+      } else {
+          let res = RED.util.evaluateNodeProperty(node.statuz, node.statuzType, node, msg, (err, val) => {
+            done(undefined, val)
+          });
+      }
+    }
 
     var handler = function (msg, send) {
       if (typeof msg._comp == "undefined" || msg._comp == null) {
@@ -62,11 +83,10 @@ module.exports = function (RED) {
       if (callerEvent != EVENT_PREFIX + config.id) {
         throw RED._("components.message.invalid_idMatch", { nodeId: node.id, callerId: callerEvent });
       }
+      let returnNode = msg._comp.returnNode;
       if (stack.length == 0) {
         // stack is empty, so we are done.
         delete msg._comp;
-        node.send(msg);
-        node.status({});
       } else {
         // check, if the next entry in the stack is from this node
         let peek = stack.pop();
@@ -74,12 +94,24 @@ module.exports = function (RED) {
         if (peek.component == node.id) {
           sendStartFlow(msg, node);
           node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") })
-        } else {
-          // next entry on stack is for another caller, so we are done.
-          node.send(msg);
-          node.status({});
+          return
         }
       }
+      // find outport
+      if (returnNode.mode == "default") {
+        node.send(msg);
+      } else {
+        msgArr = [];
+        for (let i in node.outLabels) {
+          if (node.outLabels[i] == returnNode.name || node.outLabels[i] == returnNode.id) {
+            msgArr.push(msg);
+          } else {
+            msgArr.push(null);
+          }
+        }
+        node.send(msgArr);
+      }
+      setStatuz(node, msg);
     }
     RED.events.on(EVENT_PREFIX + config.id, handler);
 
@@ -89,7 +121,7 @@ module.exports = function (RED) {
       node.status({});
     });
 
-    this.on("input", function (msg, send) {
+    this.on("input", function (msg) {
       sendStartFlow(msg, node);
       node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") });
     });
@@ -109,6 +141,7 @@ module.exports = function (RED) {
       msg._comp.stack.push(event)
 
       // setup msg from parameters
+      let validationErrors = {}
       for (var paramName in node.paramSources) {
         let paramSource = node.paramSources[paramName];
         let sourceType = paramSource.sourceType;
@@ -124,8 +157,54 @@ module.exports = function (RED) {
             throw RED._("components.message.missingProperty", { parameter: paramSource.name });
           }
         } else {
-          msg[paramSource.name] = val;
+          if (paramSource.required) {
+            // validate types
+            let type = typeof(val)
+            switch (paramSource.type) {
+              case "num": {
+                if (type != "number") {
+                  validationErrors[paramName] = RED._("components.message.validationError", 
+                    { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val});
+                }
+                break;
+              }
+              case "string": {
+                if (type != "string") {
+                  validationErrors[paramName] = RED._("components.message.validationError", 
+                    { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val});
+                }
+                break;
+              }
+              case "boolean": {
+                if (type != "boolean") {
+                  validationErrors[paramName] = RED._("components.message.validationError", 
+                    { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val});
+                }
+                break;
+              }
+              case "json": {
+                try {
+                  if (type == "object") {
+                    // we have to check 
+                    val = JSON.stringify(val)
+                  }
+                  val = JSON.parse(val);
+                } catch(err) {
+                  validationErrors[paramName] = RED._("components.message.jsonValidationError", 
+                    { parameter: paramSource.name, value: val});
+                }
+                break;
+              }
+              case "any":
+              default:
+                break;
+            }
+          }
         }
+        msg[paramSource.name] = val;
+      }
+      if (Object.keys(validationErrors).length > 0) {
+        throw validationErrors
       }
 
       // send event
@@ -146,7 +225,36 @@ module.exports = function (RED) {
 
     // Create our node and event handler
     RED.nodes.createNode(this, config);
+    node.mode = config.mode;
 
+    // get all nodes calling me:
+    let getCallingNodes = function (parent) {
+      let callerList = {}
+      RED.nodes.eachNode((child) => {
+        if (child.wires && child.wires.length > 0) {
+            child.wires[0].forEach((nodeid) => {
+                if (nodeid == parent.id) {
+                    callerList[child.id] = child;
+                }
+            })
+        }
+      });
+      return callerList;
+    }
+
+    // look for the component IN that I belong to:
+    let findInComponentNode = function (parent) {
+      let found = {}
+      let callers = getCallingNodes(parent);
+      Object.entries(callers).forEach(([id, node]) => {
+        if (node.type == "component_in") {
+          found[id] = node;
+        } else {
+          found = {...found, ...findInComponentNode(node)}
+        }
+      })
+      return found;
+    }
 
     this.on("input", function (msg) {
 
@@ -155,6 +263,11 @@ module.exports = function (RED) {
         // peek into stack to know where to return:
         let callerEvent = msg._comp.stack.pop();
         msg._comp.stack.push(callerEvent);
+        msg._comp.returnNode = {
+          id: node.id,
+          mode: node.mode,
+          name: node.name
+        }
         // send event
         RED.events.emit(callerEvent, msg);
       }

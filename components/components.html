@@ -6,6 +6,57 @@
 	const COMPONENTS_COLOR = "#1dc91d";
 	const COMPONENTS_CATEGORY = "advanced";
 
+	// find all RETURN component nodes, that are connected to me.
+	// traverses all connected nodes, including link nodes
+	const findReturnNodes = function(nodeid, foundNodes, type = "component_out") {
+		function getNodeById(nodeid) {
+			return RED.nodes.originalFlow().find((node) => {
+				return node.id == nodeid;
+			});
+		}
+		function getNodeConfigById(nodeid) {
+			let found = null;
+			RED.nodes.eachNode((n) => {
+				if (n.id == nodeid) {
+					found = n;
+				}
+			});
+			return found;
+		}
+		// console.log(".", RED.nodes, RED.nodes.originalFlow())
+		let node = getNodeById(nodeid)
+		let config = getNodeConfigById(nodeid)
+		if (node.wires && node.wires.length > 0) {
+			node.wires.forEach((outPort) => {
+				outPort.forEach((childid) => {
+					let child = getNodeById(childid);
+					if (child.type == type) {
+						foundNodes[childid] = child;
+					} else if (child.type == "link out") {
+						// look for more nodes at the other side of the link
+						child.links.forEach((linkid) => {
+							let link = getNodeById(linkid);
+							findReturnNodes(linkid, foundNodes)
+						})
+					} else {
+						// look for connected nodes
+						findReturnNodes(childid, foundNodes)
+					}
+				})
+			});
+		}
+	}
+	const findInstances = function(nodeid, foundNodes) {
+		function getNodeById(nodeid) {
+			return RED.nodes.originalFlow().filter((node) => {
+				return node.type == "component" && node.targetComponent && node.targetComponent.id == nodeid;
+			});
+		}
+		getNodeById(nodeid).forEach((inst) => {
+			foundNodes[inst.id] = inst
+		})
+	}
+
 	RED.nodes.registerType('component_in', {
 		category: COMPONENTS_CATEGORY,
 		color: COMPONENTS_COLOR,
@@ -32,26 +83,32 @@
 					if (!property.type) {
 						// empty, new item
 						property.type = "any";
+						property.required = true;
 					}
 					container.css({
 						overflow: 'hidden',
 						whiteSpace: 'nowrap'
 					});
-					var row1 = $('<div/>').appendTo(container);
+					var row1 = $('<div style="display: flex;"/>').appendTo(container);
 					//var row2 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
 
-					var propertyName = $('<input/>', { class: "node-input-property-name", style: "margin-right:10px; min-width:120px;", type: "text", placeholder: "name" }).appendTo(row1);
-					var selectField = $('<select/>', { class: "node-input-property-type", style: "margin-right:10px; width:100px;" }).appendTo(row1);
+					var propertyName = $('<input/>', { class: "node-input-property-name", style: "margin-right:10px; flex: 1 0 max-content;", type: "text", placeholder: "name" }).appendTo(row1);
+					var selectField = $('<select/>', { class: "node-input-property-type", style: "margin-right:10px;  flex: 0 0 min-content;" }).appendTo(row1);
 					var selectOptions = [{ v: "any", l: "any" }, { v: "string", l: "string" }, { v: "number", l: "number" }, { v: "json", l: "json" }, { v: "boolean", l: "boolean" }];
 					for (var i = 0; i < selectOptions.length; i++) {
 						selectField.append($("<option></option>").val(selectOptions[i].v).text(selectOptions[i].l));
 					}
-					var required = $('<input/>', {id: "cb_" + i, class: "node-input-property-required", style: "width: 10px; margin-right:10px;", type: "checkbox" }).appendTo(row1);
-					$('<label/>', { 'for': 'cb_' + i, text: i18n("components.label.required"), style: "width:60px; margin-right: 20px;" }).appendTo(row1);
+					// next column: checkboxes for required / validate stacked vertically
+					var checkBoxes = $('<div>', {style: "flex: 0 0 min-content; display: flex; flex-direction: column"}).appendTo(row1);
+
+					var checkRow1 = $('<div>', {style: "flex: 0 0 min-content; display: flex; align-items: top"}).appendTo(checkBoxes);
+					var required = $('<input/>', {id: "cb_" + i, class: "node-input-property-required", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
+					$('<label/>', { text: i18n("components.label.required"), 'for': 'cb_' + i, style: "flex: 2;" }).appendTo(checkRow1);
 
 					propertyName.val(property.name);
 					selectField.val(property.type);
 					required.prop("checked", property.required);
+					// validate.prop("checked", property.validate);
 					resizeRule(container);
 				},
 				resizeItem: resizeRule,
@@ -66,8 +123,8 @@
 
 			// set api properties
 			for (var i = 0; i < this.api.length; i++) {
-				var property = this.api[i];
-				$("#node-input-api-container").editableList('addItem', property);
+				var prop = this.api[i];
+				$("#node-input-api-container").editableList('addItem', prop);
 			}
 
 		} catch(err) {
@@ -85,6 +142,7 @@
 				var type = property.find(".node-input-property-type").val();
 				var required = property.find(".node-input-property-required")[0].checked;
 				node.api.push({ name, type, required });
+
 			});
 		}
 	});
@@ -115,10 +173,21 @@
 		defaults: {
 			name: { value: "" },
 			targetComponent: { value: null, required: true },
-			paramSources: { value: {} }
+			paramSources: { value: {} },
+			statuz: { value: "", validate: RED.validators.typedInput("statuzType") },
+			statuzType: { value: "str" },
+			outputs: {value: 1},
+			outLabels: {value: ["default"]}
 		},
 		inputs: 1,
 		outputs: 1,
+		outputLabels: function(index) {
+			if (this.outLabels && this.outLabels.length && this.outLabels.length > 0) {
+				return this.outLabels[index];
+			} else {
+				return "default";
+			}
+		},
 		icon: "font-awesome/fa-retweet",
 		paletteLabel: "use comp",
 		oneditprepare: function () {
@@ -183,27 +252,11 @@
 				}
 			});
 
-			if (!$.fn.sizeChanged) {
-					$.fn.sizeChanged = function (handleFunction) {
-					var element = this;
-					var lastWidth = element.width();
-					var lastHeight = element.height();
-
-					setInterval(function () {
-						if (lastWidth === element.width() && lastHeight === element.height())
-							return;
-						if (typeof (handleFunction) == 'function') {
-							handleFunction(element, { width: lastWidth, height: lastHeight },
-										{ width: element.width(), height: element.height() });
-							lastWidth = element.width();
-							lastHeight = element.height();
-						}
-					}, 100);
-
-
-					return element;
-				};
-			}
+			var statusCtrl = $('#node-input-statuz');
+			statusCtrl.typedInput({
+				default: this.statuzType || "str",
+				types: ["msg", "str", "num", "bool", "json", "jsonata"],
+			});
 
 			function resetWidth(ol) {
 				let itemCount = ol.children().length;
@@ -220,24 +273,13 @@
 				for (let i = 0; i < itemCount; i++) {
 					let li = ol.children().eq(i);
 					let div = li.children().eq(0);
-					div.children().eq(0).width(max0 + "px");
-					div.children().eq(1).width(max1 + "px");
+					div.children().eq(0).css("minWidth", max0 + "px");
+					div.children().eq(1).css("minWidth", max1 + "px");
 					div.children().eq(2).children().eq(1).width((div.width() - max0 - max1 -30) + "px");
 				}
 			}
 
-			// set parameters in relation to the selected component's API
-			function resizeRule(row, item) {
-				//another item, this here was added. so we scan the other items and set the columns accordingly
-				// column 1 + 2: set to width of largest entry
-				// column 3 (input): set to rest of row-width 
-
-				// scan:
-				let ol = item.parent().parent();
-				resetWidth(ol);
-			}
-
-			$('#node-input-parameter-container').css('min-height', '250px').css('min-width', '450px').editableList({
+			let container = $('#node-input-parameter-container').css('min-height', '250px').css('min-width', '450px').editableList({
 				addItem: function (container, i, opt) {
 					var property = opt;
 					if (!property.type) {
@@ -247,18 +289,15 @@
 					container.css({
 						overflow: 'hidden',
 						whiteSpace: 'nowrap',
-						display: "flex"
+						display: "flex",
+						alignItems: "center"
 					});
 
-					/*
-					var propertyName = $('<span/>', { class: "node-input-property-name", style: "font-weight: bold; margin-right:10px; min-width:60px; line-height: 34px; float: left;" }).append(property.name).appendTo(row1);
-					var propertyType = $('<span/>', { class: "node-input-property-type", style: "margin-right:10px; width:60px; line-height: 34px;  float: left;" }).append("[" + property.type + "]").appendTo(row1);
-					var selectSource = $('<input/>', { class: "node-input-property-source", style: "margin-right:10px; width:200px;" }).appendTo(row1);
-					*/
-					var propertyName = $('<span/>', { class: "node-input-property-name", style: "font-weight: bold; margin-right:10px; display: inline-block;" }).append(property.name).appendTo(container);
-					var propertyType = $('<span/>', { class: "node-input-property-type", style: "margin-right:10px; line-height: 34px; display: inline-block;" }).append("[" + property.type + "]").appendTo(container);
-					var selectSourceDiv = $('<div/>', { class: "node-input-property-source", style: "margin-right:10px;" }).appendTo(container);
+					var propertyName = $('<span/>', { class: "node-input-property-name", style: "font-weight: bold; margin-right:10px; line-height: 32px; flex: 1 0 min-content;" }).append(property.name).appendTo(container);
+					var propertyType = $('<span/>', { class: "node-input-property-type", style: "margin-right:10px; line-height: 32px; flex: 1 0 min-content;" }).append("[" + property.type + "]").appendTo(container);
+					var selectSourceDiv = $('<div/>', { class: "node-input-property-source", style: "margin-right:10px; flex: 1 0;" }).appendTo(container);
 					var selectSource = $('<input/>', { }).appendTo(selectSourceDiv);
+					var validateCheckbox = $('<span/>', { class: "node-input-property-validate", style: "margin-right:10px; line-height: 32px; flex: 1 0 min-content;" }).append("[" + property.type + "]").appendTo(container);
 
 					const pTypes = {
 						any: null,
@@ -276,23 +315,60 @@
 
 					selectSource.typedInput('value', property.source);
 					selectSource.typedInput('type', property.sourceType);
-					resizeRule(i, container);
+
+					resetWidth(container);
 				},
-				resizeItem: resizeRule,
 				removable: false,
 				sortable: false,
 				addButton: false
-			}).sizeChanged(function(element) {
-				let ol = element;
-				resetWidth(ol);
 			})
-
+			this.observer = new ResizeObserver(entries => {
+				resetWidth(container);
+			});
+			this.observer.observe(document.querySelector('#node-input-parameter-container'))
 
 			$("#node-input-selected").change();
 		} catch (err) {
 			console.error(err);
 			throw err;
 		}
+
+			// Handle output ports depending on number of componet flow's return nodes.
+			let node = this
+			let oldLabels = [...node.outLabels]
+			let newLabels = []
+			console.log("old", node.outLabels.length, node.outLabels, oldLabels)
+
+			let foundReturnNodes = {}
+			findReturnNodes(node.targetComponent.id, foundReturnNodes)
+			for (let key in foundReturnNodes) {
+				let retNode = foundReturnNodes[key]
+				if (retNode.mode && retNode.mode == "separate") {
+					newLabels.push(retNode.name || key)
+				} else {
+					if (newLabels.length == 0 || newLabels[0] != "default") {
+						newLabels.splice(0, 0, "default")
+					}
+				}
+			}
+			console.log("neu", newLabels)
+			let diff = newLabels.length != oldLabels.length;
+			// check labels for changes
+			if (!diff) {
+				for (let i in newLabels) {
+					if (newLabels[i] != oldLabels[i]) {
+						diff = true;
+						break;
+					}
+				}
+			}
+			console.log("diff", diff, $("#output-alert"))
+			if (diff) {
+				$("#output-alert").show()
+			} else {
+				$("#output-alert").hide()
+			}
+
 		},
 		oneditsave: function () {
 			var node = this;
@@ -303,6 +379,8 @@
 				// get target node ID
 				let selectedComponentId = $("#node-input-selected").find("option:selected").val();
 				
+				this.statuzType = $("#node-input-statuz").typedInput('type');
+
 				// get target node 
 				node.targetComponent = null;
 				RED.nodes.eachNode(function (n) {
@@ -318,7 +396,7 @@
 				if (node.targetComponent == null) {
 					throw "could not find target node for ID '" + selectedComponentId + "'";
 				}
-				
+
 				// save parameters from list
 				var params = $("#node-input-parameter-container").editableList('items');
 				node.paramSources = {};
@@ -339,10 +417,35 @@
 				console.error(err);
 				throw err;
 			}
+			if (this.observer) {
+				this.observer.disconnect()
+				this.observer = undefined
+			}
+
+			// Handle output ports depending on number of componet flow's return nodes.
+			let foundReturnNodes = {}
+			findReturnNodes(node.targetComponent.id, foundReturnNodes)
+			node.outLabels = []
+			for (let key in foundReturnNodes) {
+				let retNode = foundReturnNodes[key]
+				if (retNode.mode && retNode.mode == "separate") {
+					node.outLabels.push(retNode.name || key)
+				} else {
+					if (node.outLabels.length == 0 || node.outLabels[0] != "default") {
+						node.outLabels.splice(0, 0, "default")
+					}
+				}
+			}
+			node.outputs = node.outLabels.length;
+
 			this.editor.destroy();
 			delete node.editor;
 		},
 		oneditcancel: function () {
+			if (this.observer) {
+				this.observer.disconnect()
+				this.observer = undefined
+			}
 			this.editor.destroy();
 			delete this.editor;
 		}
@@ -354,10 +457,19 @@
         <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
     </div>
     <div class="form-row">
-      <label for="node-input-selected" data-i18n="components.label.component"><i class="fa fa-random"></i> <span></span></label>
-			<select id="node-input-selected"></select>
-    </div>
-		<div class="form-row node-input-parameter-container-row">
+		<label for="node-input-selected" data-i18n="components.label.component"><i class="fa fa-random"></i> <span></span></label>
+		<select id="node-input-selected"></select>
+	</div>
+	<div class="form-row">
+		<label for="node-input-statuz"><i class="fa fa-dot-circle-o"></i> <span data-i18n="components.label.status"></span></label>
+        <input id="node-input-statuz" type="text">
+		<input id="node-input-statuz-type" type="hidden">
+	</div>
+	<div class="form-row" style="color: orange" id="output-alert">
+		<label><i class="fa fa-exclamation-triangle"></i> <span data-i18n="components.label.outportChange"></span></label>
+        <span data-i18n="components.message.outportChange"></span>
+	</div>
+	<div class="form-row node-input-parameter-container-row">
         <ol id="node-input-parameter-container"></ol>
     </div>
 </script>
@@ -374,7 +486,8 @@
 		},
 		align: 'right',
 		defaults: {
-			name: { value: "comp return" },
+			name: { value: null },
+			mode: { value: "default"}
 		},
 		inputs: 1,
 		outputs: 0,
@@ -386,5 +499,12 @@
     <div class="form-row">
         <label for="node-input-name" data-i18n="components.label.name"><i class="icon-tag"></i></label>
         <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-mode" data-i18n="components.label.mode.label"><i class="icon-tag"></i></label>
+        <select id="node-input-mode">
+			<option value="default" data-i18n="components.label.mode.default" />
+			<option value="separate" data-i18n="components.label.mode.separate" />
+		</select>
     </div>
 </script>

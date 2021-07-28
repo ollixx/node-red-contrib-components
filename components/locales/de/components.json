@@ -4,7 +4,14 @@
             "api": "API",
             "component": "Komponente",
             "name": "Name",
-            "required": "erwartet"
+            "required": "erwartet",
+            "status": "Status",
+            "mode": {
+                "label": "Output Port",
+                "default": "Default",
+                "separate": "Einzel"
+            },
+            "outportChange": "Achtung"
         },
         "message": {
             "invalid_comp": "Komponente '__nodeId__' empfing inkorrektes Event. 'msg._comp' ist 'undefined' oder 'null'",
@@ -12,7 +19,10 @@
             "invalid_idMatch": "Komponente '__nodeId__' empfing inkorrektes Event. ID stimmt nicht überein mit: __callerId__",
             "lastCaller": "letzter Aufruf von",
             "missingProperty": "Parameter '__parameter__' wird erwartet, hat aber keinen Wert.",
-            "running": "läuft"
+            "running": "läuft",
+            "validationError": "Ungültiger Parameter '__parameter__'. Erwartet: '__expected__', Empfangen: '__invalidType__'. Wert: '__value__'.",
+            "jsonValidationError": "Ungültiger Parameter '__parameter__'. Wert konnte nicht als JSON validiert werden: '__value__'.",
+            "outportChange": "Die Output Ports haben sich geändert. Bitte diesen Dialog speichern, um die Anzahl und Bezeichnung der Ports zu aktualisieren."
         }
     }
 }
