@@ -26,12 +26,18 @@ I can live with that, and I hope many of you node-red enthusiasts enjoy them, to
 ![Component input node](/images/component_in.png)
 
 This input node is the starting point of an reusable flow. It allows to set a list of parameters, that it expects.
-Every parameter is defined by its name, a type and a flag to define it as required or optional.
+Every parameter is defined by its name, a type and a flag to define it as required or optional. This list of parameters can be seen as the API of the component.
 
 ### component_out - End of the flow
 ![Component output node](/images/component_out.png)
 
-Until now, this node is an ordinary one, just returning the ```msg``` to the calling node. In versions to come, it will
+This node returns the ```msg``` to the calling node and supports nested components. 
+
+If it receives a message, that is not created by a calling compontent node, the message is broadcast to all possible callers, i.e. all component nodes, that use the return node's flow.
+
+A component flow can have more than one return node. For each of them, the calling component node optionally features a separate output port labeled with the name of the return node. By default, a return node will send its message to one "default" output port.
+
+In versions to come, it will
 also allow to set some options like purging unwanted or temporary parts from the final ```msg```.
 
 ### component - the calling node
@@ -71,6 +77,7 @@ I am still working on publishing more example flows to accelerate getting Compon
 * use github actions to build the package, create releases and publish to npm
 * Allow to set the status in the ```component``` node. See: https://github.com/ollixx/node-red-contrib-components/issues/1
 * Validate incoming message parts in the ```component``` node. Use the types defined in the API to validate the message parts. See https://github.com/ollixx/node-red-contrib-components/issues/2
+* ```component_return``` node handles events/messages that do not come from their matching ```component_in``` node. The message is brodacast to all ```component``` nodes, that call (and now react to) the flow.
 
 ## Ideas, not yet done
 * filter the incoming message, so certain parts are purged before executing the component
@@ -91,5 +98,5 @@ I am still working on publishing more example flows to accelerate getting Compon
 * realize more ideas (see above)
 * clean up code
 * rethink the naming of the nodes (feedback is welcome)
-* sample flows ( both as code and images in here)
+* sample flows ( both as code and images in here) / examples
 * create Change logs for another release (automatically in workflow)
