@@ -227,7 +227,8 @@ module.exports = function (RED) {
 
     // Create our node and event handler
     RED.nodes.createNode(this, config);
-    node.mode = config.mode;
+    // fix legacy nodes without mode
+    node.mode = config.mode || "default";
 
     // get all nodes calling me:
     let getCallingNodes = function (parent) {
