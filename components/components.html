@@ -487,12 +487,17 @@
 		align: 'right',
 		defaults: {
 			name: { value: null },
-			mode: { value: "default"}
+			mode: { value: "default" }
 		},
 		inputs: 1,
 		outputs: 0,
 		icon: "font-awesome/fa-mail-reply",
-		paletteLabel: "comp return"
+		paletteLabel: "comp return",
+		oneditprepare: function () {
+			// support legacy
+			if (this.mode === undefined)
+				$('select option[value="default"]').attr("selected",true);
+		}
 	});
 </script>
 <script type="text/x-red" data-template-name="component_out">
