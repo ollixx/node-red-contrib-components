@@ -22,6 +22,10 @@ module.exports = function (RED) {
       let paramSource = node.paramSources[paramName];
       let sourceType = paramSource.sourceType;
       let val = null;
+      // make sure, the user entered a valid source
+      if (!paramSource.hasOwnProperty()) {
+        validationErrors[paramName] = "missing source. please set the parameter to a valid input"
+      }
       // an empty, optional parameter is evaluated only, if the source type is "string".
       // In that case, the parameter is set(!). It is not put into the message in all other cases.
       if (paramSource.source.length > 0 || sourceType == "str") {
@@ -228,7 +232,7 @@ module.exports = function (RED) {
     // Create our node and event handler
     RED.nodes.createNode(this, config);
     // fix legacy nodes without mode
-    node.mode = config.mode || "default";
+    node.mode = config.mode || "default";
 
     // get all nodes calling me:
     let getCallingNodes = function (parent) {
@@ -283,7 +287,7 @@ module.exports = function (RED) {
           let myInNode = found[Object.keys(found)[0]]
           RED.nodes.eachNode((runNode) => {
             if (runNode.type == "component") {
-              if (runNode.targetComponent.id == myInNode.id) {                
+              if (runNode.targetComponent.id == myInNode.id) {
                 var event = EVENT_PREFIX + runNode.id;
                 if (typeof msg._comp == "undefined") {
                   msg._comp = {
