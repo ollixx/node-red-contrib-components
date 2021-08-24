@@ -23,7 +23,6 @@
 			});
 			return found;
 		}
-		// console.log(".", RED.nodes, RED.nodes.originalFlow())
 		let node = getNodeById(nodeid)
 		let config = getNodeConfigById(nodeid)
 		if (node.wires && node.wires.length > 0) {
@@ -88,10 +87,6 @@
 				} else {
 					$(".valid").show()
 					$(".invalid").hide()
-
-					if (RED.nodes.subflow(this.z)) {
-						console.log("Component IN must not be in Subflow", this)
-					}
 
 					let i18n = this._;
 					function resizeRule(item) {
@@ -197,7 +192,72 @@
 		defaults: {
 			name: { value: "" },
 			targetComponent: { value: null, required: true },
-			paramSources: { value: {} },
+			paramSources: {
+				value: {}, validate: function (val) {
+					console.log("validate params", val)
+					for (let p in val) {
+						let param = val[p]
+						console.log("param", param)
+						let v = param.source
+						switch (param.sourceType) {
+							case "str": {
+								if (typeof v == "object") {
+									console.log("invalid string", v)
+									return false
+								}
+								break;
+							}
+							case "bool": {
+								if (v === null || v === undefined || v.length == 0 || (v !== 'true' && v !== 'false')) {
+									return false
+								}
+								break;
+							}
+							case "num": {
+								console.log("num", parseFloat(v), isNaN(parseFloat(v)))
+								if (v === null || v === undefined || v.length == 0 || isNaN(parseFloat(v))) {
+									return false
+								}
+								break;
+							}
+							case "msg":
+							case "flow":
+							case "global": {
+								if (v === null || v === undefined || v.length == 0) {
+									return false
+								}
+								break;
+							}
+							case "jsonata": {
+								if (v === null || v === undefined || v.length == 0) {
+									return false
+								}
+								try {
+									jsonata(v)
+								} catch(err) {
+									return false
+								}
+								break;
+							}
+							case "json": {
+								if (v === null || v === undefined || v.length == 0) {
+									return false
+								}
+								try {
+									JSON.parse(v)
+								} catch(err) {
+									return false
+								}
+								break;
+							}
+							default: {
+								// no validation
+							}
+						}
+					}
+					return true
+				}
+			},
 			statuz: { value: "", validate: RED.validators.typedInput("statuzType") },
 			statuzType: { value: "str" },
 			outputs: { value: 1 },
@@ -364,7 +424,6 @@
 			let node = this
 			let oldLabels = [...node.outLabels]
 			let newLabels = []
-			console.log("old", node.outLabels.length, node.outLabels, oldLabels)
 
 			let foundReturnNodes = {}
 			findReturnNodes(node.targetComponent.id, foundReturnNodes)
@@ -378,7 +437,6 @@
 					}
 				}
 			}
-			console.log("neu", newLabels)
 			let diff = newLabels.length != oldLabels.length;
 			// check labels for changes
 			if (!diff) {
@@ -389,7 +447,6 @@
 					}
 				}
 			}
-			console.log("diff", diff, $("#output-alert"))
 			if (diff) {
 				$("#output-alert").show()
 			} else {

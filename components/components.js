@@ -84,7 +84,6 @@ module.exports = function (RED) {
       msg[paramSource.name] = val;
     }
     if (Object.keys(validationErrors).length > 0) {
-      console.trace("validation Errors", validationErrors)
       node.error(validationErrors)
     }
 
