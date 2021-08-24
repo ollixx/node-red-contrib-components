@@ -587,7 +587,6 @@
 		icon: "font-awesome/fa-mail-reply",
 		paletteLabel: "comp return",
 		oneditprepare: function () {
-
 			// NOT allowed inside subflows.
 			if (RED.nodes.subflow(this.z)) {
 				$(".invalid").show()
@@ -601,7 +600,6 @@
 				$(".valid").show()
 				$(".invalid").hide()
 			}
-
 		}
 	});
 </script>
