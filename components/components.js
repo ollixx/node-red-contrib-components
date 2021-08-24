@@ -23,7 +23,7 @@ module.exports = function (RED) {
       let sourceType = paramSource.sourceType;
       let val = null;
       // make sure, the user entered a valid source
-      if (!paramSource.hasOwnProperty()) {
+      if (!paramSource) {
         validationErrors[paramName] = "missing source. please set the parameter to a valid input"
       }
       // an empty, optional parameter is evaluated only, if the source type is "string".
@@ -34,7 +34,7 @@ module.exports = function (RED) {
       if (val == null || val == undefined) {
         if (paramSource.required) {
           node.status({ fill: "red", shape: "ring", text: RED._("components.label.required") + ": '" + paramSource.name + "'" });
-          throw RED._("components.message.missingProperty", { parameter: paramSource.name });
+          validationErrors[paramName] = RED._("components.message.missingProperty", { parameter: paramSource.name });
         }
       } else {
         if (paramSource.required) {
@@ -84,7 +84,8 @@ module.exports = function (RED) {
       msg[paramSource.name] = val;
     }
     if (Object.keys(validationErrors).length > 0) {
-      throw validationErrors
+      console.trace("validation Errors", validationErrors)
+      node.error(validationErrors)
     }
 
     // send event
@@ -114,8 +115,8 @@ module.exports = function (RED) {
     var node = this;
 
     var startFlowHandler = function (msg) {
-      if (node.invalid) {
-        node.error("component not allowed in subflow", node)
+      if (isInvalidInSubflow(RED, node) == true) {
+        node.error("component defintion is not allowed in subflow.")
         return
       }
       let target = msg._comp ? msg._comp.target : undefined;
@@ -151,15 +152,15 @@ module.exports = function (RED) {
   */
   RED.nodes.registerType("component", component);
   function component(config) {
+    // Create our node and event handler
+    RED.nodes.createNode(this, config);
+
     var node = this;
     node.targetComponent = config.targetComponent;
     node.paramSources = config.paramSources;
     node.statuz = config.statuz;
     node.statuzType = config.statuzType;
     node.outLabels = config.outLabels;
-
-    // Create our node and event handler
-    RED.nodes.createNode(this, config);
 
     function setStatuz(node, msg) {
       let done = (err, statuz) => {
