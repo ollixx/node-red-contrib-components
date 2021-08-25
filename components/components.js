@@ -3,6 +3,8 @@ module.exports = function (RED) {
   const EVENT_START_FLOW = "comp-start-flow";
   const EVENT_RETURN_FLOW = "comp-flow-return";
 
+  RED.events.setMaxListener(0) // remove "MaxListenersExceededWarning"
+
   function sendStartFlow(msg, node) {
     // create / update state for new execution
     if (typeof msg._comp == "undefined") {
