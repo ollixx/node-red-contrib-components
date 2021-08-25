@@ -1,9 +1,13 @@
+const EventEmitter = require('events');
+
 module.exports = function (RED) {
 
   const EVENT_START_FLOW = "comp-start-flow";
   const EVENT_RETURN_FLOW = "comp-flow-return";
 
-  RED.events.setMaxListeners(0) // remove "MaxListenersExceededWarning"
+  class ComponentsEmitter extends EventEmitter { }
+  const emitter = new ComponentsEmitter()
+  emitter.setMaxListeners(0) // remove "MaxListenersExceededWarning"
 
   function sendStartFlow(msg, node) {
     // create / update state for new execution
@@ -39,58 +43,55 @@ module.exports = function (RED) {
           validationErrors[paramName] = RED._("components.message.missingProperty", { parameter: paramSource.name });
         }
       } else {
-        if (paramSource.required) {
-          // validate types
-          let type = typeof (val)
-          switch (paramSource.type) {
-            case "num": {
-              if (type != "number") {
-                validationErrors[paramName] = RED._("components.message.validationError",
-                  { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
-              }
-              break;
+        // validate types
+        let type = typeof (val)
+        switch (paramSource.type) {
+          case "num": {
+            if (type != "number") {
+              validationErrors[paramName] = RED._("components.message.validationError",
+                { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
             }
-            case "string": {
-              if (type != "string") {
-                validationErrors[paramName] = RED._("components.message.validationError",
-                  { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
-              }
-              break;
-            }
-            case "boolean": {
-              if (type != "boolean") {
-                validationErrors[paramName] = RED._("components.message.validationError",
-                  { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
-              }
-              break;
-            }
-            case "json": {
-              try {
-                if (type == "object") {
-                  // we have to check 
-                  val = JSON.stringify(val)
-                }
-                val = JSON.parse(val);
-              } catch (err) {
-                validationErrors[paramName] = RED._("components.message.jsonValidationError",
-                  { parameter: paramSource.name, value: val });
-              }
-              break;
-            }
-            case "any":
-            default:
-              break;
+            break;
           }
+          case "string": {
+            if (type != "string") {
+              validationErrors[paramName] = RED._("components.message.validationError",
+                { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
+            }
+            break;
+          }
+          case "boolean": {
+            if (type != "boolean") {
+              validationErrors[paramName] = RED._("components.message.validationError",
+                { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
+            }
+            break;
+          }
+          case "json": {
+            try {
+              if (type != "object") {
+                JSON.parse(val);
+              }
+            } catch (err) {
+              console.error("invalid json", val)
+              validationErrors[paramName] = RED._("components.message.jsonValidationError",
+                { parameter: paramSource.name, value: val });
+            }
+            break;
+          }
+          case "any":
+          default:
+            break;
         }
       }
       msg[paramSource.name] = val;
     }
     if (Object.keys(validationErrors).length > 0) {
-      node.error(validationErrors)
+      node.error("validation error", validationErrors)
     }
 
     // send event
-    RED.events.emit(EVENT_START_FLOW, msg);
+    emitter.emit(EVENT_START_FLOW, msg);
   }
 
   function isInvalidInSubflow(red, node) {
@@ -126,11 +127,11 @@ module.exports = function (RED) {
         node.receive(msg);
       }
     }
-    RED.events.on(EVENT_START_FLOW, startFlowHandler);
+    emitter.on(EVENT_START_FLOW, startFlowHandler);
 
     // Clean up event handler
     this.on("close", function () {
-      RED.events.removeListener(EVENT_START_FLOW, startFlowHandler);
+      emitter.removeListener(EVENT_START_FLOW, startFlowHandler);
     });
 
     this.on("input", function (msg) {
@@ -232,11 +233,11 @@ module.exports = function (RED) {
         setStatuz(node, msg);
       }
     }
-    RED.events.on(EVENT_RETURN_FLOW, returnFromFlowHandler);
+    emitter.on(EVENT_RETURN_FLOW, returnFromFlowHandler);
 
     // Clean up event handler on close
     this.on("close", function () {
-      RED.events.removeListener(EVENT_RETURN_FLOW, returnFromFlowHandler);
+      emitter.removeListener(EVENT_RETURN_FLOW, returnFromFlowHandler);
       node.status({});
     });
 
@@ -309,7 +310,7 @@ module.exports = function (RED) {
             name: node.name
           }
           // send event
-          RED.events.emit(EVENT_RETURN_FLOW, msg);
+          emitter.emit(EVENT_RETURN_FLOW, msg);
         } else {
           // broadcast the message to all RUN node
           try {
@@ -334,7 +335,7 @@ module.exports = function (RED) {
                     mode: node.mode,
                     name: node.name
                   }
-                  RED.events.emit(EVENT_RETURN_FLOW, msg);
+                  emitter.emit(EVENT_RETURN_FLOW, msg);
                 }
               }
             });
