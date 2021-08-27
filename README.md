@@ -4,6 +4,14 @@ very much inspired by [action flows](https://github.com/Steveorevo/node-red-cont
 
 ![Components](/images/components.png)
 
+> Nota bene: currently, *moving* "comp use" nodes and their associated "comp start" nodes from one tab into another one using "*cut*-and-paste" does not work properly: "comp use" nodes loose their association with the moved "comp start" nodes.
+>
+> Similarly, *copying* "comp use" nodes and their associated "comp start" nodes using "*copy*-and-paste" will keep the "comp use" nodes associated with their original "comp start" nodes, not the copied ones.
+>
+> Fortunately, there is a **simple workaround** if you just want to *move* nodes: instead of using the clipboard, just *export* all nodes to be moved into a text editor, delete the originals from the workspace, switch to a new tab and *reimport* the nodes from your text editor again - that's it! All associations are kept and everything will work again once you have deployed your changes.
+>
+> Unfortunately, there is no such workaround if you want to *copy* flows: here, you may use "*copy*-and-paste" as usual, but will have to reassociate every "comp use" node with the copy of its original "comp start" node - there is no simpler way...
+
 ## Motivation
 I love node-red and I try do solve mostly every programmable problem with it. Some projects can get 
 really complicated and having 20 tabs with hundreds of nodes needs some more structure. Components always
