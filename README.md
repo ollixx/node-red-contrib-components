@@ -4,14 +4,6 @@ very much inspired by [action flows](https://github.com/Steveorevo/node-red-cont
 
 ![Components](/images/components.png)
 
-> Nota bene: currently, *moving* "comp use" nodes and their associated "comp start" nodes from one tab into another one using "*cut*-and-paste" does not work properly: "comp use" nodes loose their association with the moved "comp start" nodes.
->
-> Similarly, *copying* "comp use" nodes and their associated "comp start" nodes using "*copy*-and-paste" will keep the "comp use" nodes associated with their original "comp start" nodes, not the copied ones.
->
-> Fortunately, there is a **simple workaround** if you just want to *move* nodes: instead of using the clipboard, just *export* all nodes to be moved into a text editor, delete the originals from the workspace, switch to a new tab and *reimport* the nodes from your text editor again - that's it! All associations are kept and everything will work again once you have deployed your changes.
->
-> Unfortunately, there is no such workaround if you want to *copy* flows: here, you may use "*copy*-and-paste" as usual, but will have to reassociate every "comp use" node with the copy of its original "comp start" node - there is no simpler way...
-
 ## Motivation
 I love node-red and I try do solve mostly every programmable problem with it. Some projects can get 
 really complicated and having 20 tabs with hundreds of nodes needs some more structure. Components always
@@ -72,7 +64,13 @@ npm install node-red-contrib-components
 ### Examples
 I am still working on publishing more example flows to accelerate getting Components to work. It's on my todo list (see below).
 
-## Implemented features
+#### Cut/Copy/Paste component nodes
+At the moment only ```use comp``` can be copy/pasted wihtout problems.
+Cut/Copy/Pasting component flows, i.e. ```comp start``` and ```comp return``` nodes together with any linked ```use comp``` nodes will not preserve the association between them. 
+There is a work around to move (not copy) components together with their ```use comp``` nodes: Export the set of nodes, remove them from NR and re-import them at the new tab.
+At least the Cut/Paste behaviour will probably be fixed in one of the next releases.
+
+### Implemented features
 * definition nodes (component_in and component return) to define a flow, that represents a resusable component.
 * usage node (component) that uses / executes a component.
 * configure an API like list of parameters the flow expects.
