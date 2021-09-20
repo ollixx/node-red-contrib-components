@@ -9,6 +9,50 @@ module.exports = function (RED) {
   const emitter = new ComponentsEmitter()
   emitter.setMaxListeners(0) // remove "MaxListenersExceededWarning"
 
+  /** 
+   * Retrieve all nodes, that are wired to call the given nodeid.
+   * Then retrieve the parent callers for each of the found nodes revcursively
+   * This func is also aware of link nodes.
+   * The retrieval list can be reduced by passing in a filter function
+  */
+  function getCallerHierarchy(targetid, filter = null) {
+    let result = {}
+    RED.nodes.eachNode((child) => {
+      if (child.wires) {
+        child.wires.forEach((port) => {
+          port.forEach((nodeid) => {
+            if (nodeid == targetid) {
+              // handle link nodes
+              if (child.type == "link in") {
+                let linkHierarchy = {
+                  node: child,
+                  callers: {}
+                }
+                child.links.forEach((linkOutId) => {
+                  RED.nodes.eachNode((foundNode) => {
+                    if (linkOutId == foundNode.id) {
+                      linkHierarchy.callers[linkOutId] = {
+                        node: foundNode,
+                        callers: getCallerHierarchy(linkOutId, filter)
+                      }
+                    }
+                  })
+                })
+                result[child.id] = linkHierarchy
+              } else {
+                result[child.id] = {
+                  node: child,
+                  callers: getCallerHierarchy(child.id, filter)
+                }
+              }
+            }
+          })
+        })
+      }
+    })
+    return result
+  }
+
   function sendStartFlow(msg, node) {
     // create / update state for new execution
     if (typeof msg._comp == "undefined") {
@@ -23,7 +67,7 @@ module.exports = function (RED) {
     msg._comp.stack.push(node.id)
 
     // setup msg from parameters
-    let validationErrors = {}
+    let validationErrors = { }
     for (var paramName in node.paramSources) {
       let paramSource = node.paramSources[paramName];
       let sourceType = paramSource.sourceType;
@@ -104,6 +148,29 @@ module.exports = function (RED) {
     return found
   }
 
+  // find all RETURN component nodes, that are connected to me.
+  // traverses all connected nodes, including link nodes
+  const findReturnNodes = function (node, foundNodes, type = "component_out") {
+    if (node.wires && node.wires.length > 0) {
+      node.wires.forEach((outPort) => {
+        outPort.forEach((childid) => {
+          let child = RED.nodes.getNode(childid);
+          if (child.type == type) {
+            foundNodes[childid] = child;
+          } else if (child.type == "link out") {
+            // look for more nodes at the other side of the link
+            child.links.forEach((linkid) => {
+              findReturnNodes(linkid, foundNodes)
+            })
+          } else {
+            // look for connected nodes
+            findReturnNodes(childid, foundNodes)
+          }
+        })
+      });
+    }
+  }
+
   /*
 
         ******* COMPONENT IN *************
@@ -122,7 +189,6 @@ module.exports = function (RED) {
         return
       }
       let target = msg._comp ? msg._comp.target : undefined;
-      // if (node.type == "component_in") console.log("in node", node.id, node.type, "got message", msg, target)
       if (target == node.id) {
         node.receive(msg);
       }
@@ -142,6 +208,14 @@ module.exports = function (RED) {
       let stack = msg._comp.stack;
       node.status({ fill: "grey", shape: "ring", text: RED._("components.message.lastCaller") + ": " + stack[stack.length - 1] });
       this.send(msg);
+
+      // if this START node is not connected to a return node, we send back a notification to the RUN node.
+      let foundReturnNodes = {}
+      findReturnNodes(node)
+      if (Object.keys(foundReturnNodes).length == 0) {
+        // send event
+        emitter.emit(EVENT_RETURN_FLOW, msg);
+    }
     });
 
   } // END: COMPONENT IN
@@ -163,6 +237,11 @@ module.exports = function (RED) {
     node.statuz = config.statuz;
     node.statuzType = config.statuzType;
     node.outLabels = config.outLabels;
+
+    if (!node.targetComponent || !node.targetComponent.id) {
+      node.error(RED._("components.message.componentNotConnected"))
+      node.status({ fill: "red", shape: "dot", text: RED._("components.message.componentNotConnected") })
+    }
 
     function setStatuz(node, msg) {
       let done = (err, statuz) => {
@@ -209,11 +288,17 @@ module.exports = function (RED) {
           let peek = stack.pop();
           stack.push(peek);
           if (peek.component == node.id) {
+            node.status({ fill: "green", shape: "dot", text: RED._("components.message.running") })
             sendStartFlow(msg, node);
-            node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") })
             return
           }
         }
+        // check for no-return component (IN only)
+        if (returnNode === undefined) {
+          node.status({})
+          return
+        }
+
         // find outport
         if (returnNode.mode == "default") {
           node.send(msg);
@@ -235,15 +320,25 @@ module.exports = function (RED) {
     }
     emitter.on(EVENT_RETURN_FLOW, returnFromFlowHandler);
 
+    if (isInvalidInSubflow(RED, node) == true) {
+      node.error(RED._("components.message.componentInSubflow"))
+      return
+    }
+
     // Clean up event handler on close
     this.on("close", function () {
       emitter.removeListener(EVENT_RETURN_FLOW, returnFromFlowHandler);
-      node.status({});
+      node.status({ });
     });
 
     this.on("input", function (msg) {
-      sendStartFlow(msg, node);
+      if (!node.targetComponent || !node.targetComponent.id) {
+        node.error(RED._("components.message.componentNotConnected"))
+        node.status({ fill: "red", shape: "dot", text: RED._("components.message.componentNotConnected") })
+        return
+      }
       node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") });
+      sendStartFlow(msg, node);
     });
 
   } // END: RUN COMPONENT
@@ -263,40 +358,44 @@ module.exports = function (RED) {
     // fix legacy nodes without mode
     node.mode = config.mode || "default";
 
-    // get all nodes calling me:
-    let getCallingNodes = function (parent) {
-      let callerList = {}
-      RED.nodes.eachNode((child) => {
-        if (child.wires && child.wires.length > 0) {
-          child.wires[0].forEach((nodeid) => {
-            if (nodeid == parent.id) {
-              callerList[child.id] = child;
-            }
-          })
-        }
-      });
-      return callerList;
-    }
-
     // look for the component IN that I belong to:
-    let findInComponentNode = function (parent) {
-      let found = {}
-      let callers = getCallingNodes(parent);
-      Object.entries(callers).forEach(([id, node]) => {
-        if (node.type == "component_in") {
-          found[id] = node;
+    let findInComponentNode = function (callers) {
+      let found = { }
+      Object.entries(callers).forEach(([id, entry]) => {
+        if (entry.node.type == "component_in") {
+          found[id] = entry.node;
         } else {
-          found = { ...found, ...findInComponentNode(node) }
+          found = { ...found, ...findInComponentNode(entry.callers) }
         }
       })
       return found;
     }
 
+    let callers = getCallerHierarchy(node.id)
+    let foundInNodes = findInComponentNode(callers)
+    node.inNodeLength = Object.keys(foundInNodes).length
+    if (node.inNodeLength != 1) {
+      node.error(RED._("components.message.returnWithoutStart", {inNodeLength: node.inNodeLength}))
+      node.invalid = true
+    } else {
+      node.inNode = Object.values(foundInNodes)[0]
+    }
+
+    if (isInvalidInSubflow(RED, node) == true) {
+      node.error(RED._("components.message.componentInSubflow"))
+      return
+    }
+
     this.on("input", function (msg) {
       try {
         if (isInvalidInSubflow(RED, node) == true) {
-          node.error("component defintion is not allowed in subflow.")
+          node.error(RED._("components.message.componentInSubflow"))
           return
+        }
+
+        if (node.invalid) {
+          node.error(RED._("components.message.returnWithoutStart", {inNodeLength: node.inNodeLength}))
+          return // stop execution here
         }
 
         // create / update state for new execution
@@ -314,15 +413,9 @@ module.exports = function (RED) {
         } else {
           // broadcast the message to all RUN node
           try {
-            let found = findInComponentNode(node)
-            if (Object.keys(found).length != 1) {
-              node.error("found no IN node for me. Did you wire the node", node);
-              return
-            }
-            let myInNode = found[Object.keys(found)[0]]
             RED.nodes.eachNode((runNode) => {
               if (runNode.type == "component") {
-                if (runNode.targetComponent.id == myInNode.id) {
+                if (runNode.targetComponent && runNode.targetComponent.id == node.inNode.id) {
                   if (msg._comp === undefined) {
                     msg._comp = {
                       stack: []
