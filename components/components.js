@@ -54,88 +54,93 @@ module.exports = function (RED) {
   }
 
   function sendStartFlow(msg, node) {
-    // create / update state for new execution
-    if (typeof msg._comp == "undefined") {
-      // create from scratch
-      msg._comp = {
-        stack: []
-      };
-    }
-    // target node's id (component in) to start flow
-    msg._comp.target = node.targetComponent.id;
-    // push my ID onto the stack - the next return will come back to me
-    msg._comp.stack.push(node.id)
+    try {
+      // create / update state for new execution
+      if (typeof msg._comp == "undefined") {
+        // create from scratch
+        msg._comp = {
+          stack: []
+        };
+      }
+      // target node's id (component in) to start flow
+      msg._comp.target = node.targetComponent.id;
+      // push my ID onto the stack - the next return will come back to me
+      msg._comp.stack.push(node.id)
 
-    // setup msg from parameters
-    let validationErrors = { }
-    for (var paramName in node.paramSources) {
-      let paramSource = node.paramSources[paramName];
-      let sourceType = paramSource.sourceType;
-      let val = null;
-      // make sure, the user entered a valid source
-      if (!paramSource) {
-        validationErrors[paramName] = "missing source. please set the parameter to a valid input"
-      }
-      // an empty, optional parameter is evaluated only, if the source type is "string".
-      // In that case, the parameter is set(!). It is not put into the message in all other cases.
-      if (paramSource.source.length > 0 || sourceType == "str") {
-        val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
-      }
-      if (val == null || val == undefined) {
-        if (paramSource.required) {
-          node.status({ fill: "red", shape: "ring", text: RED._("components.label.required") + ": '" + paramSource.name + "'" });
-          validationErrors[paramName] = RED._("components.message.missingProperty", { parameter: paramSource.name });
+      // setup msg from parameters
+      let validationErrors = {}
+      for (var paramName in node.paramSources) {
+        let paramSource = node.paramSources[paramName];
+        let sourceType = paramSource.sourceType;
+        let val = null;
+        // make sure, the user entered a valid source
+        if (!paramSource) {
+          validationErrors[paramName] = "missing source. please set the parameter to a valid input"
         }
-      } else {
-        // validate types
-        let type = typeof (val)
-        switch (paramSource.type) {
-          case "num": {
-            if (type != "number") {
-              validationErrors[paramName] = RED._("components.message.validationError",
-                { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
-            }
-            break;
+        // an empty, optional parameter is evaluated only, if the source type is "string".
+        // In that case, the parameter is set(!). It is not put into the message in all other cases.
+        if (paramSource.source && paramSource.source.length > 0 || sourceType == "str") {
+          val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
+        }
+        if (val == null || val == undefined) {
+          if (paramSource.required) {
+            node.status({ fill: "red", shape: "ring", text: RED._("components.label.required") + ": '" + paramSource.name + "'" });
+            validationErrors[paramName] = RED._("components.message.missingProperty", { parameter: paramSource.name });
           }
-          case "string": {
-            if (type != "string") {
-              validationErrors[paramName] = RED._("components.message.validationError",
-                { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
-            }
-            break;
-          }
-          case "boolean": {
-            if (type != "boolean") {
-              validationErrors[paramName] = RED._("components.message.validationError",
-                { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
-            }
-            break;
-          }
-          case "json": {
-            try {
-              if (type != "object") {
-                JSON.parse(val);
+        } else {
+          // validate types
+          let type = typeof (val)
+          switch (paramSource.type) {
+            case "num": {
+              if (type != "number") {
+                validationErrors[paramName] = RED._("components.message.validationError",
+                  { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
               }
-            } catch (err) {
-              console.error("invalid json", val)
-              validationErrors[paramName] = RED._("components.message.jsonValidationError",
-                { parameter: paramSource.name, value: val });
+              break;
             }
-            break;
+            case "string": {
+              if (type != "string") {
+                validationErrors[paramName] = RED._("components.message.validationError",
+                  { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
+              }
+              break;
+            }
+            case "boolean": {
+              if (type != "boolean") {
+                validationErrors[paramName] = RED._("components.message.validationError",
+                  { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
+              }
+              break;
+            }
+            case "json": {
+              try {
+                if (type != "object") {
+                  JSON.parse(val);
+                }
+              } catch (err) {
+                console.error("invalid json", val)
+                validationErrors[paramName] = RED._("components.message.jsonValidationError",
+                  { parameter: paramSource.name, value: val });
+              }
+              break;
+            }
+            case "any":
+            default:
+              break;
           }
-          case "any":
-          default:
-            break;
         }
+        msg[paramSource.name] = val;
       }
-      msg[paramSource.name] = val;
-    }
-    if (Object.keys(validationErrors).length > 0) {
-      node.error("validation error", validationErrors)
-    }
+      if (Object.keys(validationErrors).length > 0) {
+        node.error("validation error", validationErrors)
+      }
 
-    // send event
-    emitter.emit(EVENT_START_FLOW, msg);
+      // send event
+      emitter.emit(EVENT_START_FLOW, msg);
+    } catch (err) {
+      console.trace(err)
+      node.error(err)
+    }
   }
 
   function isInvalidInSubflow(red, node) {
@@ -151,23 +156,28 @@ module.exports = function (RED) {
   // find all RETURN component nodes, that are connected to me.
   // traverses all connected nodes, including link nodes
   const findReturnNodes = function (node, foundNodes, type = "component_out") {
-    if (node.wires && node.wires.length > 0) {
-      node.wires.forEach((outPort) => {
-        outPort.forEach((childid) => {
-          let child = RED.nodes.getNode(childid);
-          if (child.type == type) {
-            foundNodes[childid] = child;
-          } else if (child.type == "link out") {
-            // look for more nodes at the other side of the link
-            child.links.forEach((linkid) => {
-              findReturnNodes(linkid, foundNodes)
-            })
-          } else {
-            // look for connected nodes
-            findReturnNodes(childid, foundNodes)
-          }
-        })
-      });
+    try {
+      if (node.wires && node.wires.length > 0) {
+        node.wires.forEach((outPort) => {
+          outPort.forEach((childid) => {
+            let child = RED.nodes.getNode(childid);
+            if (child.type == type) {
+              foundNodes[childid] = child;
+            } else if (child.type == "link out") {
+              // look for more nodes at the other side of the link
+              child.links.forEach((linkid) => {
+                findReturnNodes(linkid, foundNodes)
+              })
+            } else {
+              // look for connected nodes
+              findReturnNodes(childid, foundNodes)
+            }
+          })
+        });
+      }
+    } catch (err) {
+      console.trace(err)
+      node.error(err)
     }
   }
 
@@ -184,13 +194,18 @@ module.exports = function (RED) {
     var node = this;
 
     var startFlowHandler = function (msg) {
-      if (isInvalidInSubflow(RED, node) == true) {
-        node.error("component defintion is not allowed in subflow.")
-        return
-      }
-      let target = msg._comp ? msg._comp.target : undefined;
-      if (target == node.id) {
-        node.receive(msg);
+      try {
+        if (isInvalidInSubflow(RED, node) == true) {
+          node.error("component defintion is not allowed in subflow.")
+          return
+        }
+        let target = msg._comp ? msg._comp.target : undefined;
+        if (target == node.id) {
+          node.receive(msg);
+        }
+      } catch (err) {
+        console.trace(err)
+        node.error(err)
       }
     }
     emitter.on(EVENT_START_FLOW, startFlowHandler);
@@ -211,11 +226,11 @@ module.exports = function (RED) {
 
       // if this START node is not connected to a return node, we send back a notification to the RUN node.
       let foundReturnNodes = {}
-      findReturnNodes(node)
+      findReturnNodes(node, foundReturnNodes)
       if (Object.keys(foundReturnNodes).length == 0) {
         // send event
         emitter.emit(EVENT_RETURN_FLOW, msg);
-    }
+      }
     });
 
   } // END: COMPONENT IN
@@ -328,7 +343,7 @@ module.exports = function (RED) {
     // Clean up event handler on close
     this.on("close", function () {
       emitter.removeListener(EVENT_RETURN_FLOW, returnFromFlowHandler);
-      node.status({ });
+      node.status({});
     });
 
     this.on("input", function (msg) {
@@ -360,7 +375,7 @@ module.exports = function (RED) {
 
     // look for the component IN that I belong to:
     let findInComponentNode = function (callers) {
-      let found = { }
+      let found = {}
       Object.entries(callers).forEach(([id, entry]) => {
         if (entry.node.type == "component_in") {
           found[id] = entry.node;
@@ -375,7 +390,7 @@ module.exports = function (RED) {
     let foundInNodes = findInComponentNode(callers)
     node.inNodeLength = Object.keys(foundInNodes).length
     if (node.inNodeLength != 1) {
-      node.error(RED._("components.message.returnWithoutStart", {inNodeLength: node.inNodeLength}))
+      node.error(RED._("components.message.returnWithoutStart", { inNodeLength: node.inNodeLength }))
       node.invalid = true
     } else {
       node.inNode = Object.values(foundInNodes)[0]
@@ -394,7 +409,7 @@ module.exports = function (RED) {
         }
 
         if (node.invalid) {
-          node.error(RED._("components.message.returnWithoutStart", {inNodeLength: node.inNodeLength}))
+          node.error(RED._("components.message.returnWithoutStart", { inNodeLength: node.inNodeLength }))
           return // stop execution here
         }
 
