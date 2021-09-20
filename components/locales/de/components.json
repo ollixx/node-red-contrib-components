@@ -24,7 +24,9 @@
             "validationError": "Ungültiger Parameter '__parameter__'. Erwartet: '__expected__', Empfangen: '__invalidType__'. Wert: '__value__'.",
             "jsonValidationError": "Ungültiger Parameter '__parameter__'. Wert konnte nicht als JSON validiert werden: '__value__'.",
             "outportChange": "Die Output Ports haben sich geändert. Bitte diesen Dialog speichern, um die Anzahl und Bezeichnung der Ports zu aktualisieren.",
-            "componentInSubflow": "Components dürfen nicht innerhalb von subflows definiert werden. Nur das Ausführen von Components ist erlaubt."
+            "componentInSubflow": "Components dürfen nicht innerhalb von subflows definiert werden. Nur das Ausführen von Components ist erlaubt.",
+            "componentNotConnected": "Für diesen Knoten muss eine Komponente ausgewählt werden.",
+            "returnWithoutStart": "Ein return Knoten muss mit genau einen start Knoten verbunden sein. Es sind jetzt __inNodeLength__ start Knoten verbunden."
         }
     }
 }

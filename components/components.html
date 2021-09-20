@@ -62,6 +62,13 @@
 		defaults: {
 			name: { value: "component in" },
 			api: { value: [{ name: "prop", type: "string" }] },
+			node_is_not_connected: {
+				value: "", validate: function (v) {
+					// check if we have at least one node connected. Might be a "no-return" config
+					let node = getNodeById(this.id)
+					return node.wires[0].length > 1
+				}
+			},
 			component_definitions_are_NOT_allowed_inside_subflows: {
 				value: RED.nodes.subflow(this.z), validate: function (v) {
 					return !RED.nodes.subflow(this.z)
@@ -191,31 +198,35 @@
 		},
 		defaults: {
 			name: { value: "" },
-			targetComponent: { value: null, required: true },
+			targetComponent: {
+				value: null, required: true, validate: function (val) {
+					if (val && val.id) {
+						// check if target exists (might by stale)
+						if (RED.nodes.node(val.id)) return true
+					}
+					return false
+				}
+			},
 			paramSources: {
 				value: {}, validate: function (val) {
-					console.log("validate params", val)
 					for (let p in val) {
 						let param = val[p]
-						console.log("param", param)
 						let v = param.source
 						switch (param.sourceType) {
 							case "str": {
 								if (typeof v == "object") {
-									console.log("invalid string", v)
 									return false
 								}
 								break;
 							}
 							case "bool": {
-								if (v === null || v === undefined || v.length == 0 || (v !== 'true' && v !== 'false')) {
+								if (v === null || v === undefined || v.length == 0 || (v !== 'true' && v !== 'false')) {
 									return false
 								}
 								break;
 							}
 							case "num": {
-								console.log("num", parseFloat(v), isNaN(parseFloat(v)))
-								if (v === null || v === undefined || v.length == 0 || isNaN(parseFloat(v))) {
+								if (v === null || v === undefined || v.length == 0 || isNaN(parseFloat(v))) {
 									return false
 								}
 								break;
@@ -223,29 +234,29 @@
 							case "msg":
 							case "flow":
 							case "global": {
-								if (v === null || v === undefined || v.length == 0) {
+								if (v === null || v === undefined || v.length == 0) {
 									return false
 								}
 								break;
 							}
 							case "jsonata": {
-								if (v === null || v === undefined || v.length == 0) {
+								if (v === null || v === undefined || v.length == 0) {
 									return false
 								}
 								try {
 									jsonata(v)
-								} catch(err) {
+								} catch (err) {
 									return false
 								}
 								break;
 							}
 							case "json": {
-								if (v === null || v === undefined || v.length == 0) {
+								if (v === null || v === undefined || v.length == 0) {
 									return false
 								}
 								try {
 									JSON.parse(v)
-								} catch(err) {
+								} catch (err) {
 									return false
 								}
 								break;
@@ -416,6 +427,7 @@
 
 				$("#node-input-selected").change();
 			} catch (err) {
+				console.trace(err)
 				console.error(err);
 				throw err;
 			}
@@ -562,6 +574,22 @@
 			******* COMPONENT RETURN *************
 -->
 <script type="text/javascript">
+	const findStartNode = function (returnNodeId) {
+		let startNode = undefined
+		Object.values(RED.nodes.originalFlow()).forEach(n => {
+			if (n.type == "component_in") {
+				let foundList = {}
+				findReturnNodes(n.id, foundList)
+				// console.log("ret", returnNodeId, foundList[returnNodeId])
+				if (foundList[returnNodeId]) {
+					startNode = n
+				}
+			}
+		})
+		return startNode
+	}
+
+
 	RED.nodes.registerType('component_out', {
 		category: COMPONENTS_CATEGORY,
 		color: COMPONENTS_COLOR,
@@ -576,6 +604,12 @@
 		defaults: {
 			name: { value: null },
 			mode: { value: "default" },
+			node_is_not_connected: {
+				value: "", validate: function (v) {
+					let myStartNode = findStartNode(this.id)
+					return myStartNode !== undefined
+				}
+			},
 			component_definitions_are_NOT_allowed_inside_subflows: {
 				value: true, validate: function (v) {
 					return !RED.nodes.subflow(this.z)
