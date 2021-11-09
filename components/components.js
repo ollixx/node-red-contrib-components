@@ -155,12 +155,16 @@ module.exports = function (RED) {
 
   // find all RETURN component nodes, that are connected to me.
   // traverses all connected nodes, including link nodes
-  const findReturnNodes = function (node, foundNodes, type = "component_out") {
+  const findReturnNodes = function (nodeid, foundNodes, type = "component_out") {
     try {
+      let node = RED.nodes.getNode(nodeid);
       if (node.wires && node.wires.length > 0) {
         node.wires.forEach((outPort) => {
           outPort.forEach((childid) => {
             let child = RED.nodes.getNode(childid);
+            if (child === undefined) {
+              throw "could not find node for id" + childid;
+            }
             if (child.type == type) {
               foundNodes[childid] = child;
             } else if (child.type == "link out") {
@@ -168,10 +172,9 @@ module.exports = function (RED) {
               child.links.forEach((linkid) => {
                 findReturnNodes(linkid, foundNodes)
               })
-            } else {
-              // look for connected nodes
-              findReturnNodes(childid, foundNodes)
             }
+            // look for connected nodes
+            findReturnNodes(childid, foundNodes)
           })
         });
       }
@@ -224,9 +227,11 @@ module.exports = function (RED) {
       node.status({ fill: "grey", shape: "ring", text: RED._("components.message.lastCaller") + ": " + stack[stack.length - 1] });
       this.send(msg);
 
-      // if this START node is not connected to a return node, we send back a notification to the RUN node.
+      // If this START node is not connected to a return node, we send back a notification to the calling RUN node, so it can continue.
+      // N.B. that this is a broadcast to all RUN nodes. Only the caller will recognize itself on the stack and continue execution.
+      // This is a NON-return scenario, where the component just consumes the message (e.g. a logging service)
       let foundReturnNodes = {}
-      findReturnNodes(node, foundReturnNodes)
+      findReturnNodes(node.id, foundReturnNodes)
       if (Object.keys(foundReturnNodes).length == 0) {
         // send event
         emitter.emit(EVENT_RETURN_FLOW, msg);
