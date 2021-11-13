@@ -156,6 +156,7 @@ module.exports = function (RED) {
   // find all RETURN component nodes, that are connected to me.
   // traverses all connected nodes, including link nodes
   const findReturnNodes = function (nodeid, foundNodes, type = "component_out") {
+    let node = RED.nodes.getNode(nodeid);
     try {
       let node = RED.nodes.getNode(nodeid);
       if (node.wires && node.wires.length > 0) {
