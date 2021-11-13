@@ -170,9 +170,17 @@ module.exports = function (RED) {
               foundNodes[childid] = child;
             } else if (child.type == "link out") {
               // look for more nodes at the other side of the link
-              child.links.forEach((linkid) => {
-                findReturnNodes(linkid, foundNodes)
-              })
+              if (child.links) {
+                // old nr:
+                child.links.forEach((linkid) => {
+                  findReturnNodes(linkid, foundNodes)
+                })
+              } else if (child.wires) {
+                // nr2
+                child.wires[0].forEach((linkid) => {
+                  findReturnNodes(linkid, foundNodes)
+                })
+              }
             }
             // look for connected nodes
             findReturnNodes(childid, foundNodes)
