@@ -1,0 +1,93 @@
+[
+    {
+        "id": "fbb8e0c6.fd63c",
+        "type": "component_in",
+        "z": "5384bb85.537fd4",
+        "name": "Component",
+        "api": [],
+        "x": 170,
+        "y": 640,
+        "wires": [
+            [
+                "19eab3c2.0c8d8c"
+            ]
+        ]
+    },
+    {
+        "id": "19eab3c2.0c8d8c",
+        "type": "component_out",
+        "z": "5384bb85.537fd4",
+        "name": "return",
+        "mode": "default",
+        "x": 450,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "65025951.68c2a8",
+        "type": "component",
+        "z": "5384bb85.537fd4",
+        "name": "run it",
+        "targetComponent": {
+            "id": "fbb8e0c6.fd63c",
+            "name": "Component",
+            "api": []
+        },
+        "paramSources": {},
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 290,
+        "y": 600,
+        "wires": [
+            [
+                "364e4d91.1c1952"
+            ]
+        ]
+    },
+    {
+        "id": "364e4d91.1c1952",
+        "type": "debug",
+        "z": "5384bb85.537fd4",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 450,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "4398a730.4ea3e8",
+        "type": "inject",
+        "z": "5384bb85.537fd4",
+        "name": "Run",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "Works!",
+        "payloadType": "str",
+        "x": 150,
+        "y": 600,
+        "wires": [
+            [
+                "65025951.68c2a8"
+            ]
+        ]
+    }
+]
