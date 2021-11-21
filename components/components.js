@@ -62,6 +62,7 @@ module.exports = function (RED) {
           stack: []
         };
       }
+
       // target node's id (component in) to start flow
       msg._comp.target = node.targetComponent.id;
       // push my ID onto the stack - the next return will come back to me
@@ -132,7 +133,8 @@ module.exports = function (RED) {
         msg[paramSource.name] = val;
       }
       if (Object.keys(validationErrors).length > 0) {
-        node.error("validation error", validationErrors)
+        console.error("validation error", validationErrors);
+        node.error("validation error");
       }
 
       // send event
@@ -302,30 +304,15 @@ module.exports = function (RED) {
         node.error(RED._("components.message.invalid_stack", { nodeId: node.id }), msg);
       }
       let stack = msg._comp.stack
-      let callerId = stack.pop(); // get the last entry, with an id matching this node's id
-      if (callerId != config.id) {
-        // put back the callerId onto the stack, so the next event listener can actually find it.
-        stack.push(callerId);
-      } else {
-        // the message is for me
         let returnNode = msg._comp.returnNode;
+      if (returnNode && returnNode.callerId == config.id) {
+        // the message is for me
+        stack.pop();
+        delete msg._comp.returnNode;
+          // console.log(node.id, "return", msg._comp, "stack length", stack.length);
         if (stack.length == 0) {
           // stack is empty, so we are done.
-          delete msg._comp; // -> following event listeners (component nodes) won't be able to handle this event.
-        } else {
-          // check, if the next entry in the stack is from this node
-          let peek = stack.pop();
-          stack.push(peek);
-          if (peek.component == node.id) {
-            node.status({ fill: "green", shape: "dot", text: RED._("components.message.running") })
-            sendStartFlow(msg, node);
-            return
-          }
-        }
-        // check for no-return component (IN only)
-        if (returnNode === undefined) {
-          node.status({})
-          return
+            delete msg._comp; // -> following event listeners (component nodes) won't be able to handle this event.
         }
 
         // find outport
@@ -342,7 +329,7 @@ module.exports = function (RED) {
               msgArr.push(null);
             }
           }
-          node.send(msgArr);
+          node.send(msgArr.length == 1 ? msg : msgArr);
         }
         setStatuz(node, msg);
       }
@@ -434,6 +421,7 @@ module.exports = function (RED) {
           msg._comp.stack.push(callerId);
           msg._comp.returnNode = {
             id: node.id,
+            callerId: callerId, // prevent unwanted return chain
             mode: node.mode,
             name: node.name
           }
