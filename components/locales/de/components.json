@@ -12,7 +12,8 @@
                 "separate": "Einzel"
             },
             "outportChange": "Achtung",
-            "componentInSubflow": "Nicht erlaubt in Subflows"
+            "componentInSubflow": "Nicht erlaubt in Subflows",
+            "global": "global"
         },
         "message": {
             "invalid_comp": "Komponente '__nodeId__' empfing inkorrektes Event. 'msg._comp' ist 'undefined' oder 'null'",

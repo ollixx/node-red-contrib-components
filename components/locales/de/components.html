@@ -6,9 +6,24 @@
         Je Parameter kann der Name des message parts und sein Typ angegeben werden. 
         Zusätzlich kann der Parameter auf "erwartet" gesetzt werden.
         </p>
+
+        <h4>Option `global`</h4>
+        <ul>
+            <li>
+                <b>eingeschaltet</b>
+                Der Parameter wird direkt in die <code>msg</code> gesetzt und dort auch nach dem Verlassen des Flows der Komponente nicht wieder entfernt. 
+                Er bleibt also "global" in der <code>msg</code> erhalten.
+            </li>
+            <li>
+                <b>ausgeschaltet</b>
+                Der Parameter ist nur "lokal" verfügbar, also nur innerhalb des Flows der Komponente, in <code>msg.component</code>. Danach wird er wieder entfernt.
+                Ein lokaler Parameter wird durch die Komponente automatisch auf dem Stack gesichert, so dass er bei geschachtelten Aufrufen nicht verloren geht.
+            </li>
+        </ul>
+        Default ist "aus", i.e. "lokal"
  </script>
 
- <script type="text/html" data-help-name="component">
+<script type="text/html" data-help-name="component">
     <p>
         Knoten, der eine ausgewählte Komponente ausführt. 
         Im Editor kann aus allen definierten Komponenten eine ausgewählt werden, die von diesem Knoten aufgerufen werden soll.
@@ -25,7 +40,7 @@
         </p>
  </script>
 
- <script type="text/html" data-help-name="component_out">
+<script type="text/html" data-help-name="component_out">
     <p>
         Endknoten für den Flow einer Komponente.
         Der Flow wird beendet und der aufrufende Knoten übernimmt die weitere Ausführung.
