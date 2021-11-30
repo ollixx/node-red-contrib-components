@@ -15,8 +15,12 @@ module.exports = function (RED) {
    * This func is also aware of link nodes.
    * The retrieval list can be reduced by passing in a filter function
   */
-  function getCallerHierarchy(targetid, filter = null) {
+  function getCallerHierarchy(targetid, filter = null, visited = []) {
     let result = {}
+    if (visited.includes(targetid)) {
+      return result;
+    }
+    visited.push(targetid);
     RED.nodes.eachNode((child) => {
       if (child.wires) {
         child.wires.forEach((port) => {
@@ -33,7 +37,7 @@ module.exports = function (RED) {
                     if (linkOutId == foundNode.id) {
                       linkHierarchy.callers[linkOutId] = {
                         node: foundNode,
-                        callers: getCallerHierarchy(linkOutId, filter)
+                        callers: getCallerHierarchy(linkOutId, filter, visited)
                       }
                     }
                   })
@@ -42,7 +46,7 @@ module.exports = function (RED) {
               } else {
                 result[child.id] = {
                   node: child,
-                  callers: getCallerHierarchy(child.id, filter)
+                  callers: getCallerHierarchy(child.id, filter, visited)
                 }
               }
             }
@@ -66,7 +70,12 @@ module.exports = function (RED) {
       // target node's id (component in) to start flow
       msg._comp.target = node.targetComponent.id;
       // push my ID onto the stack - the next return will come back to me
-      msg._comp.stack.push(node.id)
+      let context = {}; // context lives only until the next return node
+      msg._comp.stack.push({ callerId: node.id, targetId: node.targetComponent.id, context });
+      if (msg._comp.stack.length > 1) {
+        // connect to parent context
+        context._parent = msg._comp.stack.slice(-2)[0].context;
+      }
 
       // setup msg from parameters
       let validationErrors = {}
@@ -130,15 +139,20 @@ module.exports = function (RED) {
               break;
           }
         }
-        msg[paramSource.name] = val;
+        if (paramSource.global) {
+          msg[paramSource.name] = val;
+        } else {
+          context[paramSource.name] = val;
+        }
       }
       if (Object.keys(validationErrors).length > 0) {
         console.error("validation error", validationErrors);
-        node.error("validation error");
+        node.error("validation error\n" + JSON.stringify(validationErrors));
       }
+      msg.component = context; // use the new context as "component"
 
       // send event
-      emitter.emit(EVENT_START_FLOW, msg);
+      emitter.emit(EVENT_START_FLOW + "-" + node.targetComponent.id, msg);
     } catch (err) {
       console.trace(err)
       node.error(err)
@@ -157,7 +171,12 @@ module.exports = function (RED) {
 
   // find all RETURN component nodes, that are connected to me.
   // traverses all connected nodes, including link nodes
-  const findReturnNodes = function (nodeid, foundNodes, type = "component_out") {
+  const findReturnNodes = function (nodeid, foundNodes, type = "component_out", visited = []) {
+    if (visited.includes(nodeid)) {
+      // already been here, so quit
+      return;
+    }
+    visited.push(nodeid); // mark as vistited
     let node = RED.nodes.getNode(nodeid);
     try {
       let node = RED.nodes.getNode(nodeid);
@@ -175,17 +194,17 @@ module.exports = function (RED) {
               if (child.links) {
                 // old nr:
                 child.links.forEach((linkid) => {
-                  findReturnNodes(linkid, foundNodes)
+                  findReturnNodes(linkid, foundNodes, type, visited)
                 })
               } else if (child.wires) {
                 // nr2
                 child.wires[0].forEach((linkid) => {
-                  findReturnNodes(linkid, foundNodes)
+                  findReturnNodes(linkid, foundNodes, type, visited)
                 })
               }
             }
             // look for connected nodes
-            findReturnNodes(childid, foundNodes)
+            findReturnNodes(childid, foundNodes, type, visited)
           })
         });
       }
@@ -222,11 +241,11 @@ module.exports = function (RED) {
         node.error(err)
       }
     }
-    emitter.on(EVENT_START_FLOW, startFlowHandler);
+    emitter.on(EVENT_START_FLOW + "-" + node.id, startFlowHandler);
 
     // Clean up event handler
     this.on("close", function () {
-      emitter.removeListener(EVENT_START_FLOW, startFlowHandler);
+      emitter.removeListener(EVENT_START_FLOW + "-" + node.id, startFlowHandler);
     });
 
     this.on("input", function (msg) {
@@ -235,17 +254,16 @@ module.exports = function (RED) {
         return
       }
       let stack = msg._comp.stack;
-      node.status({ fill: "grey", shape: "ring", text: RED._("components.message.lastCaller") + ": " + stack[stack.length - 1] });
+      let lastEntry = stack.slice(-1)[0];
+      node.status({ fill: "grey", shape: "ring", text: RED._("components.message.lastCaller") + ": " + lastEntry.callerId });
       this.send(msg);
 
       // If this START node is not connected to a return node, we send back a notification to the calling RUN node, so it can continue.
-      // N.B. that this is a broadcast to all RUN nodes. Only the caller will recognize itself on the stack and continue execution.
-      // This is a NON-return scenario, where the component just consumes the message (e.g. a logging service)
       let foundReturnNodes = {}
       findReturnNodes(node.id, foundReturnNodes)
       if (Object.keys(foundReturnNodes).length == 0) {
-        // send event
-        emitter.emit(EVENT_RETURN_FLOW, msg);
+        // send event to caller, so he can finish his "running" state
+        emitter.emit(EVENT_RETURN_FLOW + "-" + lastEntry.callerId, msg);
       }
     });
 
@@ -300,23 +318,40 @@ module.exports = function (RED) {
         // can only be one legal receiver.
         return
       }
-      if (typeof msg._comp.stack == "undefined" || msg._comp.stack == null) {
+      if (typeof msg._comp.stack == "undefined" || msg._comp.stack == null || msg._comp.stack.length == 0) {
         node.error(RED._("components.message.invalid_stack", { nodeId: node.id }), msg);
       }
       let stack = msg._comp.stack
-        let returnNode = msg._comp.returnNode;
-      if (returnNode && returnNode.callerId == config.id) {
-        // the message is for me
+      let returnNode = msg._comp.returnNode;
+      let lastEntry = stack.slice(-1)[0];
+      let inOnlyScenario = !returnNode && lastEntry.targetId == node.targetComponent.id;
+      let broadcastScenario = returnNode && returnNode.broadcast;
+      let defaultScenario = returnNode && returnNode.callerId == config.id
+      if (inOnlyScenario || broadcastScenario || defaultScenario) {
+        // the message is for me?
         stack.pop();
         delete msg._comp.returnNode;
-          // console.log(node.id, "return", msg._comp, "stack length", stack.length);
         if (stack.length == 0) {
           // stack is empty, so we are done.
-            delete msg._comp; // -> following event listeners (component nodes) won't be able to handle this event.
+          delete msg._comp; // -> following event listeners (component nodes) won't be able to handle this event.
+          if (inOnlyScenario) {
+            /*
+            remove the component part, if we are in a regular flow (with a return node).
+            If we are in a in-only scenario, we keep the msg.component alive. 
+            This is because the caller is notified by the IN node immediatly after it sends the message out to the
+            component flow. Sine we don't know when that flow ends (we receive no return event), we just let the 
+            component part in the msg.
+            */
+            delete msg.component;
+          }
+        } else {
+          // more on the stack, restore last context
+          let lastEntry = stack.slice(-1)[0];
+          msg.component = lastEntry.context;
         }
 
         // find outport
-        if (returnNode.mode == "default") {
+        if (!returnNode || returnNode.mode == "default") {
           node.send(msg);
         } else {
           msgArr = [];
@@ -334,16 +369,20 @@ module.exports = function (RED) {
         setStatuz(node, msg);
       }
     }
+    emitter.on(EVENT_RETURN_FLOW + "-" + node.id, returnFromFlowHandler);
+    // global event for broadcasts of in-only flows (no return node)
     emitter.on(EVENT_RETURN_FLOW, returnFromFlowHandler);
 
+    /*
     if (isInvalidInSubflow(RED, node) == true) {
       node.error(RED._("components.message.componentInSubflow"))
       return
     }
+    */
 
     // Clean up event handler on close
     this.on("close", function () {
-      emitter.removeListener(EVENT_RETURN_FLOW, returnFromFlowHandler);
+      emitter.removeListener(EVENT_RETURN_FLOW + "-" + node.id, returnFromFlowHandler);
       node.status({});
     });
 
@@ -375,8 +414,7 @@ module.exports = function (RED) {
     node.mode = config.mode || "default";
 
     // look for the component IN that I belong to:
-    let findInComponentNode = function (callers) {
-      let found = {}
+    let findInComponentNode = function (callers, found = {}) {
       Object.entries(callers).forEach(([id, entry]) => {
         if (entry.node.type == "component_in") {
           found[id] = entry.node;
@@ -417,16 +455,15 @@ module.exports = function (RED) {
         // create / update state for new execution
         if (msg._comp !== undefined) {
           // peek into stack to know where to return:
-          let callerId = msg._comp.stack.pop();
-          msg._comp.stack.push(callerId);
+          let entry = msg._comp.stack.slice(-1)[0];
           msg._comp.returnNode = {
             id: node.id,
-            callerId: callerId, // prevent unwanted return chain
+            callerId: entry.callerId, // prevent unwanted return chain
             mode: node.mode,
             name: node.name
           }
           // send event
-          emitter.emit(EVENT_RETURN_FLOW, msg);
+          emitter.emit(EVENT_RETURN_FLOW + "-" + entry.callerId, msg);
         } else {
           // broadcast the message to all RUN node
           try {
@@ -439,11 +476,12 @@ module.exports = function (RED) {
                     };
                   }
                   msg._comp.target = runNode.targetComponent.id;
-                  msg._comp.stack.push(runNode.id)
+                  msg._comp.stack.push({ callerId: runNode.id, targetId: runNode.targetComponent.id, context: {} })
                   msg._comp.returnNode = {
                     id: node.id,
                     mode: node.mode,
-                    name: node.name
+                    name: node.name,
+                    broadcast: true
                   }
                   emitter.emit(EVENT_RETURN_FLOW, msg);
                 }
