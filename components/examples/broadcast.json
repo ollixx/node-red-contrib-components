@@ -1,0 +1,136 @@
+[
+    {
+        "id": "1598253f50d21089",
+        "type": "component",
+        "z": "6542e73107b394b8",
+        "name": "",
+        "targetComponent": {
+            "id": "d45aeacd26a2b94b",
+            "name": "broadcast",
+            "api": []
+        },
+        "paramSources": {},
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 390,
+        "y": 280,
+        "wires": [
+            [
+                "190830f284bc3b77"
+            ]
+        ]
+    },
+    {
+        "id": "d1a15eb79388c309",
+        "type": "component_out",
+        "z": "6542e73107b394b8",
+        "name": "",
+        "mode": "default",
+        "node_is_not_connected": false,
+        "component_definitions_are_NOT_allowed_inside_subflows": false,
+        "x": 390,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "d45aeacd26a2b94b",
+        "type": "component_in",
+        "z": "6542e73107b394b8",
+        "name": "broadcast",
+        "api": [],
+        "node_is_not_connected": false,
+        "x": 180,
+        "y": 360,
+        "wires": [
+            [
+                "d1a15eb79388c309"
+            ]
+        ]
+    },
+    {
+        "id": "190830f284bc3b77",
+        "type": "debug",
+        "z": "6542e73107b394b8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 570,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "4c1676fb7cfeb5f3",
+        "type": "inject",
+        "z": "6542e73107b394b8",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "Test",
+        "payloadType": "str",
+        "x": 190,
+        "y": 420,
+        "wires": [
+            [
+                "d1a15eb79388c309"
+            ]
+        ]
+    },
+    {
+        "id": "d4b4021db0d2a37e",
+        "type": "component",
+        "z": "6542e73107b394b8",
+        "name": "",
+        "targetComponent": {
+            "id": "d45aeacd26a2b94b",
+            "name": "broadcast",
+            "api": []
+        },
+        "paramSources": {},
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 390,
+        "y": 320,
+        "wires": [
+            [
+                "e987d8a0fb7fc8bd"
+            ]
+        ]
+    },
+    {
+        "id": "e987d8a0fb7fc8bd",
+        "type": "debug",
+        "z": "6542e73107b394b8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 570,
+        "y": 320,
+        "wires": []
+    }
+]
