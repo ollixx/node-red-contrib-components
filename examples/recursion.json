@@ -1,0 +1,226 @@
+[
+    {
+        "id": "a6a8a672c69ba580",
+        "type": "component_in",
+        "z": "aa8d4fd1ad84c1f0",
+        "name": "handle",
+        "api": [
+            {
+                "name": "prop",
+                "type": "json",
+                "required": true,
+                "global": false
+            }
+        ],
+        "node_is_not_connected": false,
+        "x": 110,
+        "y": 280,
+        "wires": [
+            [
+                "9005eef32143a5a4"
+            ]
+        ]
+    },
+    {
+        "id": "a59a865f4082b600",
+        "type": "component",
+        "z": "aa8d4fd1ad84c1f0",
+        "name": "",
+        "targetComponent": {
+            "id": "a6a8a672c69ba580",
+            "name": "handle",
+            "api": [
+                {
+                    "name": "prop",
+                    "type": "json",
+                    "required": true,
+                    "global": false
+                }
+            ]
+        },
+        "paramSources": {
+            "prop": {
+                "name": "prop",
+                "type": "json",
+                "required": true,
+                "global": false,
+                "source": "payload.1",
+                "sourceType": "msg"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 260,
+        "y": 220,
+        "wires": [
+            [
+                "acd9bbf168cc74e5"
+            ]
+        ]
+    },
+    {
+        "id": "2e073cef2ff94909",
+        "type": "inject",
+        "z": "aa8d4fd1ad84c1f0",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"1\":{\"name\":\"1\",\"children\":{\"1.1\":{\"name\":\"1.1\",\"children\":{\"1.1.1\":{\"name\":\"1.1.1\",\"children\":{}},\"1.1.2\":{\"name\":\"1.1.2\",\"children\":{}}}},\"1.2\":{\"name\":\"1.2\",\"children\":{\"1.2.1\":{\"name\":\"1.2.1\",\"children\":{}}}}}}}",
+        "payloadType": "json",
+        "x": 110,
+        "y": 220,
+        "wires": [
+            [
+                "a59a865f4082b600"
+            ]
+        ]
+    },
+    {
+        "id": "9005eef32143a5a4",
+        "type": "change",
+        "z": "aa8d4fd1ad84c1f0",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "component.prop.touch",
+                "pt": "msg",
+                "to": "true",
+                "tot": "bool"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 340,
+        "y": 280,
+        "wires": [
+            [
+                "cc5bb0dfa0bd902a"
+            ]
+        ]
+    },
+    {
+        "id": "cc5bb0dfa0bd902a",
+        "type": "function",
+        "z": "aa8d4fd1ad84c1f0",
+        "name": "",
+        "func": "if (msg.component.handledChildren) {\n    // here we get the result of the nested handle call.\n    if (msg.component.handledChildren.length == Object.keys(msg.component.prop.children).length) {\n        delete msg.component.handledChildren;\n        return msg;\n    } else {\n        // next child\n        for (let c in msg.component.prop.children) {\n            let child = msg.component.prop.children[c];\n            if (msg.component.handledChildren.includes(child)) {\n                continue;\n            }\n            msg.component.child = child;\n            node.send([null, msg]);\n            break;\n        }\n    }\n} else {\n    // here the initial call from the start node\n    let foundChild = false;\n    for (let c in msg.component.prop.children) {\n        let child = msg.component.prop.children[c];\n        msg.component.child = child;\n        msg.component.handledChildren = [];\n        node.send([null, msg]);\n        foundChild = true;\n        break;\n    }\n    if (!foundChild) {\n        return msg;\n    }\n}\n",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 580,
+        "y": 280,
+        "wires": [
+            [
+                "711b5a0e375baea0"
+            ],
+            [
+                "620940be4a49e8d6"
+            ]
+        ]
+    },
+    {
+        "id": "620940be4a49e8d6",
+        "type": "component",
+        "z": "aa8d4fd1ad84c1f0",
+        "name": "",
+        "targetComponent": {
+            "id": "a6a8a672c69ba580",
+            "name": "handle",
+            "api": [
+                {
+                    "name": "prop",
+                    "type": "json",
+                    "required": true,
+                    "global": false
+                }
+            ]
+        },
+        "paramSources": {
+            "prop": {
+                "name": "prop",
+                "type": "json",
+                "required": true,
+                "global": false,
+                "source": "component.child",
+                "sourceType": "msg"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 760,
+        "y": 340,
+        "wires": [
+            [
+                "7c9ee2427d8a6734"
+            ]
+        ]
+    },
+    {
+        "id": "acd9bbf168cc74e5",
+        "type": "debug",
+        "z": "aa8d4fd1ad84c1f0",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 430,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "7c9ee2427d8a6734",
+        "type": "function",
+        "z": "aa8d4fd1ad84c1f0",
+        "name": "mark as handled",
+        "func": "if (msg.component.handledChildren) {\n    msg.component.handledChildren.push(msg.component.child);\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 930,
+        "y": 340,
+        "wires": [
+            [
+                "cc5bb0dfa0bd902a"
+            ]
+        ]
+    },
+    {
+        "id": "711b5a0e375baea0",
+        "type": "component_out",
+        "z": "aa8d4fd1ad84c1f0",
+        "name": "",
+        "mode": "default",
+        "component_definitions_are_NOT_allowed_inside_subflows": true,
+        "x": 770,
+        "y": 280,
+        "wires": []
+    }
+]

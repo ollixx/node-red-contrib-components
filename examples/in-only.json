@@ -1,0 +1,128 @@
+[
+    {
+        "id": "bc4a543c71e49c3d",
+        "type": "component_in",
+        "z": "6542e73107b394b8",
+        "name": "black hole",
+        "api": [
+            {
+                "name": "prop",
+                "type": "string",
+                "required": true,
+                "global": false
+            }
+        ],
+        "node_is_not_connected": false,
+        "x": 190,
+        "y": 140,
+        "wires": [
+            [
+                "48d59f4c3f8bf29c"
+            ]
+        ]
+    },
+    {
+        "id": "48d59f4c3f8bf29c",
+        "type": "change",
+        "z": "6542e73107b394b8",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "blackhole",
+                "pt": "global",
+                "to": "prop",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 400,
+        "y": 140,
+        "wires": [
+            [
+                "f54ff2eeef33e0a4"
+            ]
+        ]
+    },
+    {
+        "id": "893952bc6439e999",
+        "type": "inject",
+        "z": "6542e73107b394b8",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "Test",
+        "payloadType": "str",
+        "x": 190,
+        "y": 100,
+        "wires": [
+            [
+                "3d4e4f07f5e86b93"
+            ]
+        ]
+    },
+    {
+        "id": "3d4e4f07f5e86b93",
+        "type": "component",
+        "z": "6542e73107b394b8",
+        "name": "",
+        "targetComponent": {
+            "id": "bc4a543c71e49c3d",
+            "name": "black hole",
+            "api": [
+                {
+                    "name": "prop",
+                    "type": "string",
+                    "required": true,
+                    "global": false
+                }
+            ]
+        },
+        "paramSources": {
+            "prop": {
+                "name": "prop",
+                "type": "string",
+                "required": true,
+                "global": false,
+                "source": "payload",
+                "sourceType": "msg"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 0,
+        "outLabels": [],
+        "x": 380,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "f54ff2eeef33e0a4",
+        "type": "debug",
+        "z": "6542e73107b394b8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 590,
+        "y": 140,
+        "wires": []
+    }
+]
