@@ -1,6 +1,9 @@
 var should = require("should");
 var helper = require("node-red-node-test-helper");
-var components = require("../components.js");
+var componentStart = require("../component-start.js");
+var componentReturn = require("../component-return.js");
+var runComponent = require("../run-component.js");
+const { startServer } = require("node-red-node-test-helper");
 
 helper.init(require.resolve('node-red'));
 
@@ -62,7 +65,7 @@ describe('legacy return nodes with mode prop undefined', function () {
     });
 
     it('should return messages', function (done) {
-        helper.load([components], testFlow, {}, function () {
+        helper.load([componentStart, componentReturn, runComponent], testFlow, {}, function () {
             var debug01 = helper.getNode("debug01");
             debug01.on("input", function (msg) {
                 try {

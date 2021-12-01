@@ -3,7 +3,9 @@ var helper = require("node-red-node-test-helper");
 var changeNode = require("@node-red/nodes/core/function/15-change");
 var linkNode = require("@node-red/nodes/core/common/60-link");
 var catchNode = require("@node-red/nodes/core/common/25-catch");
-var components = require("../components.js");
+var componentStart = require("../component-start.js");
+var componentReturn = require("../component-return.js");
+var runComponent = require("../run-component.js");
 
 helper.init(require.resolve('node-red'));
 
@@ -244,7 +246,7 @@ describe('nested components, connected by links', function () {
     });
 
     it('should basically work', function (done) {
-        helper.load([components, changeNode, linkNode, catchNode], testFlow, {}, function () {
+        helper.load([componentStart, componentReturn, runComponent, changeNode, linkNode, catchNode], testFlow, {}, function () {
             var debug01 = helper.getNode("debug01");
             debug01.on("input", function (msg) {
                 try {
@@ -263,12 +265,12 @@ describe('nested components, connected by links', function () {
                 }
             });
             var run01 = helper.getNode("run01");
-            run01.receive({ 
+            run01.receive({
                 payload: {
                     inner: {
                         "even more": 999
                     }
-                } 
+                }
             });
         });
     });
