@@ -1,0 +1,411 @@
+<!--
+			******* RUN COMPONENT *************
+-->
+<script type="text/javascript">
+	RED.nodes.registerType('component', {
+		category: COMPONENTS_CATEGORY,
+		color: COMPONENTS_COLOR,
+		label: function () {
+			return this.name || (this.targetComponent ? "-> " + this.targetComponent.name : false) || "run ???";
+		},
+		defaults: {
+			name: { value: "" },
+			targetComponent: {
+				value: null, required: true, validate: function (val) {
+					if (val && val.id) {
+						// check if target exists (might by stale)
+						if (RED.nodes.node(val.id)) return true
+					}
+					return false
+				}
+			},
+			paramSources: {
+				value: {}, validate: function (val) {
+					for (let p in val) {
+						let param = val[p]
+						let v = param.source
+						switch (param.sourceType) {
+							case "str": {
+								if (typeof v == "object") {
+									return false
+								}
+								break;
+							}
+							case "bool": {
+								if (v === null || v === undefined || v.length == 0 || (v !== 'true' && v !== 'false')) {
+									return false
+								}
+								break;
+							}
+							case "num": {
+								if (v === null || v === undefined || v.length == 0 || isNaN(parseFloat(v))) {
+									return false
+								}
+								break;
+							}
+							case "msg":
+							case "flow":
+							case "global": {
+								if (v === null || v === undefined || v.length == 0) {
+									return false
+								}
+								break;
+							}
+							case "jsonata": {
+								if (v === null || v === undefined || v.length == 0) {
+									return false
+								}
+								try {
+									jsonata(v)
+								} catch (err) {
+									return false
+								}
+								break;
+							}
+							case "json": {
+								if (v === null || v === undefined || v.length == 0) {
+									return false
+								}
+								try {
+									JSON.parse(v)
+								} catch (err) {
+									return false
+								}
+								break;
+							}
+							default: {
+								// no validation
+							}
+						}
+					}
+					return true
+				}
+			},
+			statuz: { value: "", validate: RED.validators.typedInput("statuzType") },
+			statuzType: { value: "str" },
+			outputs: { value: 1 },
+			outLabels: { value: ["default"] }
+		},
+		inputs: 1,
+		outputs: 1,
+		outputLabels: function (index) {
+			if (this.outLabels && this.outLabels.length && this.outLabels.length > 0) {
+				return this.outLabels[index];
+			} else {
+				return "default";
+			}
+		},
+		icon: "font-awesome/fa-retweet",
+		paletteLabel: "use comp",
+		oneditprepare: function () {
+			try {
+				this.editor = RED.editor.createEditor({
+					id: 'node-description-editor',
+					mode: 'ace/mode/markdown',
+					value: $("#node-input-info").val()
+				});
+
+				let config = this;
+
+				let updateParameters = function (compStartNode, paramSources) {
+					$("#node-input-parameter-container").editableList('empty');
+					let api = compStartNode.api;
+					for (var i = 0; i < api.length; i++) {
+						var param = $.extend({}, api[i]);
+						if (paramSources) {
+							let paramSource = paramSources[param.name];
+							if (paramSource) {
+								param.source = paramSource.source;
+								param.sourceType = paramSource.sourceType;
+							}
+						}
+						$("#node-input-parameter-container").editableList('addItem', param);
+					}
+				}
+
+				let setLinkToDefinition = function (config, target) {
+					if (target) {
+						// $("#node-appname-message").text(config._("components/"));
+						$("#node-jumplink").replaceWith(' <a id="node-jumplink" href="#"><b>Jump to node</b></a>');
+						$("#node-jumplink").on("click", function () {
+							// show webappNode in editor
+							RED.view.reveal(target.id);
+							// close the editor tray
+							$("#node-dialog-cancel").click();
+						});
+					}
+				}
+
+				// link to START node
+				setLinkToDefinition(config, config.targetComponent);
+
+
+				// select component
+				let tabs = {};
+				let componentNodes = {};
+				RED.nodes.eachNode(function (node) {
+					if (node.type == "component_in") {
+						if (!tabs[node.z]) {
+							var flow = RED.nodes.workspace(node.z);
+							if (!flow) {
+								flow = RED.nodes.subflow(node.z);
+							}
+							tabs[node.z] = { label: flow.label || flow.name, components: {} };
+						}
+						tabs[node.z].components[node.id] = node;
+						componentNodes[node.id] = node;
+					}
+				});
+				if (!config.targetComponent) {
+					// Add a nice "empty selection" option
+					$('<option value="choose" label="---"></option>').appendTo($("#node-input-selected"));
+				}
+				for (let z in tabs) {
+					let tab = tabs[z];
+					let optionGroup = $('<optgroup label="' + tab.label + '"></optgroup>').appendTo($("#node-input-selected"));
+					for (let n in tab.components) {
+						let node = tab.components[n];
+						let option = '<option value="' + node.id + '"';
+						option += '>' + node.name + '</option>';
+						optionGroup.append(option);
+					}
+				}
+				if (config.targetComponent) {
+					$("#node-input-selected").val(config.targetComponent.id);
+				}
+				$("#node-input-selected").change(function () {
+					let emptyOption = $("#node-input-selected option[value='choose']");
+					let selectedNodeId = this.value;
+					if (selectedNodeId && selectedNodeId != "choose") {
+						// here we have a real choice of an component
+						if (emptyOption) {
+							// remove the "no selection" option - we don't want to unselect a component.
+							$("#node-input-selected option[value='choose']").remove();
+						}
+						// set the API list
+						updateParameters(componentNodes[selectedNodeId], config.paramSources);
+						// set link
+						setLinkToDefinition(config, componentNodes[selectedNodeId]);
+					}
+				});
+
+				var statusCtrl = $('#node-input-statuz');
+				statusCtrl.typedInput({
+					default: this.statuzType || "str",
+					types: ["msg", "str", "num", "bool", "json", "jsonata"],
+				});
+
+				function resetWidth(ol) {
+					let itemCount = ol.children().length;
+					let max0 = 0, max1 = 0;
+					for (let i = 0; i < itemCount; i++) {
+						let li = ol.children().eq(i);
+						let div = li.children().eq(0);
+						let w0 = div.children().eq(0).width();
+						if (w0 > max0) max0 = w0;
+						let w1 = div.children().eq(1).width();
+						if (w1 > max1) max1 = w1;
+					};
+					// now set width
+					for (let i = 0; i < itemCount; i++) {
+						let li = ol.children().eq(i);
+						let div = li.children().eq(0);
+						div.children().eq(0).css("minWidth", max0 + "px");
+						div.children().eq(1).css("minWidth", max1 + "px");
+						div.children().eq(2).children().eq(1).width((div.width() - max0 - max1 - 30) + "px");
+						// TODO? global
+					}
+				}
+
+				let container = $('#node-input-parameter-container').css('min-height', '250px').css('min-width', '450px').editableList({
+					addItem: function (container, i, opt) {
+						var property = opt;
+						if (!property.type) {
+							// empty, new item
+							property.type = "any";
+						}
+						container.css({
+							overflow: 'hidden',
+							whiteSpace: 'nowrap',
+							display: "flex",
+							alignItems: "center"
+						});
+
+						var propertyName = $('<span/>', { class: "node-input-property-name", style: "font-weight: bold; margin-right:10px; line-height: 32px; min-width: 80px;" }).append(property.name).appendTo(container);
+						var propertyType = $('<span/>', { class: "node-input-property-type", style: "margin-right:10px; line-height: 32px; min-width: 60px;" }).append("[" + property.type + "]").appendTo(container);
+						var selectSourceDiv = $('<div/>', { class: "node-input-property-source", style: "margin-right:10px; flex: 1 0;" }).appendTo(container);
+						var selectSource = $('<input/>', {}).appendTo(selectSourceDiv);
+
+						const pTypes = {
+							any: null,
+							json: null,
+							boolean: ["msg", "flow", "global", "bool", "json", "jsonata", "env"],
+							number: ["msg", "flow", "global", "num", "json", "jsonata", "env"],
+							string: ["msg", "flow", "global", "str", "json", "jsonata", "env"]
+						};
+						let pType = pTypes[property.type];
+						selectSource.typedInput({
+							default: "msg",
+							width: "100px",
+							types: pType
+						});
+
+						selectSource.typedInput('value', property.source);
+						selectSource.typedInput('type', property.sourceType);
+
+						resetWidth(container);
+					},
+					removable: false,
+					sortable: false,
+					addButton: false
+				})
+				this.observer = new ResizeObserver(entries => {
+					resetWidth(container);
+				});
+				this.observer.observe(document.querySelector('#node-input-parameter-container'))
+
+				$("#node-input-selected").change();
+			} catch (err) {
+				console.trace(err)
+				console.error(err.stack);
+				throw err;
+			}
+
+			// Handle output ports depending on number of componet flow's return nodes.
+			if (this.targetComponent) {
+				let node = this
+				let oldLabels = [...node.outLabels]
+				let newLabels = []
+
+				let foundReturnNodes = {}
+				findReturnNodes(node.targetComponent.id, foundReturnNodes)
+				for (let key in foundReturnNodes) {
+					let retNode = foundReturnNodes[key]
+					if (retNode.mode && retNode.mode == "separate") {
+						newLabels.push(retNode.name || key)
+					} else {
+						if (newLabels.length == 0 || newLabels[0] != "default") {
+							newLabels.splice(0, 0, "default")
+						}
+					}
+				}
+				let diff = newLabels.length != oldLabels.length;
+				// check labels for changes
+				if (!diff) {
+					for (let i in newLabels) {
+						if (newLabels[i] != oldLabels[i]) {
+							diff = true;
+							break;
+						}
+					}
+				}
+				if (diff) {
+					$("#output-alert").show()
+				} else {
+					$("#output-alert").hide()
+				}
+			}
+		},
+		oneditsave: function () {
+			var node = this;
+
+			try {
+				// save parameter sources for selected component
+				$("#node-input-info").val(this.editor.getValue());
+				// get target node ID
+				let selectedComponentId = $("#node-input-selected").find("option:selected").val();
+
+				this.statuzType = $("#node-input-statuz").typedInput('type');
+
+				// get target node 
+				node.targetComponent = null;
+				RED.nodes.eachNode(function (n) {
+					if (n.id == selectedComponentId) {
+						node.targetComponent = {
+							id: n.id,
+							name: n.name,
+							api: n.api
+						};
+					}
+				});
+
+				if (node.targetComponent == null) {
+					throw "could not find target node for ID '" + selectedComponentId + "'";
+				}
+
+				// save parameters from list
+				var params = $("#node-input-parameter-container").editableList('items');
+				node.paramSources = {};
+				node.targetComponent.api.forEach(function (p) {
+					node.paramSources[p.name] = $.extend({}, p);
+				});
+				params.each(function (i) {
+					let item = $(this);
+					let name = item.find(".node-input-property-name").text();
+					let type = item.find(".node-input-property-type").text();
+					let source = item.find(".node-input-property-source input").typedInput('value');
+					let sourceType = item.find(".node-input-property-source input").typedInput('type');
+					let param = node.paramSources[name];
+					param.source = source;
+					param.sourceType = sourceType;
+				});
+			} catch (err) {
+				console.error(err);
+				throw err;
+			}
+			if (this.observer) {
+				this.observer.disconnect()
+				this.observer = undefined
+			}
+
+			// Handle output ports depending on number of componet flow's return nodes.
+			let foundReturnNodes = {}
+			findReturnNodes(node.targetComponent.id, foundReturnNodes)
+			node.outLabels = []
+			for (let key in foundReturnNodes) {
+				let retNode = foundReturnNodes[key]
+				if (retNode.mode && retNode.mode == "separate") {
+					node.outLabels.push(retNode.name || key)
+				} else {
+					if (node.outLabels.length == 0 || node.outLabels[0] != "default") {
+						node.outLabels.splice(0, 0, "default")
+					}
+				}
+			}
+			node.outputs = node.outLabels.length;
+
+			this.editor.destroy();
+			delete node.editor;
+		},
+		oneditcancel: function () {
+			if (this.observer) {
+				this.observer.disconnect()
+				this.observer = undefined
+			}
+			this.editor.destroy();
+			delete this.editor;
+		}
+	});
+</script>
+<script type="text/x-red" data-template-name="component">
+    <div class="form-row">
+        <label for="node-input-name" data-i18n="components.label.name"><i class="icon-tag"></i></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
+    </div>
+	<div class="form-row">
+		<label for="node-input-selected" data-i18n="components.label.component"><i class="fa fa-random"></i> <span></span></label>
+		<select id="node-input-selected"></select> <span id="node-jumplink"></span>
+	</div>
+	<div class="form-row">
+		<label for="node-input-statuz"><i class="fa fa-dot-circle-o"></i> <span data-i18n="components.label.status"></span></label>
+        <input id="node-input-statuz" type="text">
+		<input id="node-input-statuz-type" type="hidden">
+	</div>
+	<div class="form-row" style="color: orange" id="output-alert">
+		<label><i class="fa fa-exclamation-triangle"></i> <span data-i18n="components.label.outportChange"></span></label>
+        <span data-i18n="components.message.outportChange"></span>
+	</div>
+	<div class="form-row node-input-parameter-container-row">
+        <ol id="node-input-parameter-container"></ol>
+    </div>
+</script>

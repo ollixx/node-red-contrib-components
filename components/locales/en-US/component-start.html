@@ -1,0 +1,23 @@
+<script type="text/html" data-help-name="component_in">
+    <p>Start node for the component's flow</p>
+    <h3>Inputs</h3>
+    <p>
+        The start node defines its expected parameters (aka message parts) through its API. 
+        For each parameter the name and type can be set. 
+        Additionally the parameter can be set to be required.
+    </p>
+
+    <h4>Option `global`</h4>
+    <ul>
+        <li>
+            <b>on</b>
+            The parameter is inject directly into <code>msg</code>. It is not removed after leaving the component flow. Thus he is "globally" kept in the <code>msg</code>.
+        </li>
+        <li>
+            <b>off</b>
+            The parameter is available only in the "local" context in <code>msg.component</code>. It is removed after the flow is done.
+            A local parameter is automatically stacked and preserved in nested scenarios.
+        </li>
+    </ul>
+    Default is "off", i.e. "local"
+</script>

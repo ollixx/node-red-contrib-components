@@ -1,6 +1,8 @@
 var should = require("should");
 var helper = require("node-red-node-test-helper");
-var components = require("../components.js");
+var componentStart = require("../component-start.js");
+var componentReturn = require("../component-return.js");
+var runComponent = require("../run-component.js");
 
 helper.init(require.resolve('node-red'));
 
@@ -100,7 +102,7 @@ describe('multiple return nodes', function () {
     describe('with mixed modes', function () {
 
         it('should send messages to the correct ports', function (done) {
-            helper.load([components], testFlow, {}, function () {
+            helper.load([componentStart, componentReturn, runComponent], testFlow, {}, function () {
 
                 var count01 = 0;
 
@@ -140,15 +142,15 @@ describe('multiple return nodes', function () {
 
         before(function (done) {
             testFlow.forEach((node) => {
-                if (node.name == "ret 04.3" || node.name == "ret 04.4") {
+                if (node.name == "ret 04.3" || node.name == "ret 04.4") {
                     node.mode = "default";
                 }
             })
             done()
         });
-    
+
         it('should send messages to only the default ports', function (done) {
-            helper.load([components], testFlow, {}, function () {
+            helper.load([componentStart, componentReturn, runComponent], testFlow, {}, function () {
 
                 var count01 = 0;
 
@@ -216,15 +218,15 @@ describe('multiple return nodes', function () {
                                 "debug04"
                             ]
                         ]
-                
+
                     }
                 }
             })
             done()
         });
-    
+
         it('should send messages to the matching ports', function (done) {
-            helper.load([components], testFlow, {}, function () {
+            helper.load([componentStart, componentReturn, runComponent], testFlow, {}, function () {
 
                 var debug01 = helper.getNode("debug01");
                 debug01.on("input", function (msg) {
