@@ -1,6 +1,8 @@
 var should = require("should");
 var helper = require("node-red-node-test-helper");
-var components = require("../components.js");
+var componentStart = require("../component-start.js");
+var componentReturn = require("../component-return.js");
+var runComponent = require("../run-component.js");
 
 helper.init(require.resolve('node-red'));
 
@@ -45,7 +47,7 @@ describe('unconnected ', function () {
     });
 
     it('out nodes should throw an error', function (done) {
-        helper.load([components], flowWithUnconnectedInNode, {}, function () {
+        helper.load([componentStart, componentReturn, runComponent], flowWithUnconnectedInNode, {}, function () {
             const out01 = helper.getNode('out01')
             out01.error.should.be.called()
 
@@ -53,12 +55,12 @@ describe('unconnected ', function () {
                 out01.error.should.be.called()
                 done();
             });
-            out01.receive({test: true});
+            out01.receive({ test: true });
         });
     });
 
     it('run nodes should throw an error', function (done) {
-        helper.load([components], flowWithUnconnectedInNode, {}, function () {
+        helper.load([componentStart, componentReturn, runComponent], flowWithUnconnectedInNode, {}, function () {
             const run01 = helper.getNode('run01')
             run01.error.should.be.called()
 
@@ -66,7 +68,7 @@ describe('unconnected ', function () {
                 run01.error.should.be.called()
                 done();
             });
-            run01.receive({test: true});
+            run01.receive({ test: true });
         });
     });
 });

@@ -1,0 +1,198 @@
+<!--
+			******* COMPONENT IN *************
+-->
+
+<script type="text/javascript">
+	const COMPONENTS_COLOR = "#1dc91d";
+	const COMPONENTS_CATEGORY = "advanced";
+
+	const getNode = function (nodeid) {
+		let node = { ...RED.nodes.node(nodeid) };
+		let wires = [];
+		RED.nodes.eachLink((link) => {
+			if (link.source.id == nodeid) {
+				wires[link.sourcePort] = wires[link.sourcePort] || [];
+				wires[link.sourcePort].push(link.target.id);
+			}
+		});
+		node.wires = wires;
+		return node;
+	}
+
+	// find all RETURN component nodes, that are connected to me.
+	// traverses all connected nodes, including link nodes
+	const findReturnNodes = function (nodeid, foundNodes, type = "component_out", visited = []) {
+		if (visited.includes(nodeid)) {
+			return;
+		}
+		visited.push(nodeid);
+		let node = getNode(nodeid);
+		if (node.wires && node.wires.length > 0) {
+			node.wires.forEach((outPort) => {
+				outPort.forEach((childid) => {
+					let child = getNode(childid);
+					if (child.type == type) {
+						foundNodes[childid] = child;
+					} else if (child.type == "link out") {
+						// look for more nodes at the other side of the link
+						if (child.links) {
+							child.links.forEach((linkid) => {
+								findReturnNodes(linkid, foundNodes, type, visited)
+							})
+						} else if (child.wires) {
+							child.wires[0].forEach((linkid) => {
+								findReturnNodes(linkid, foundNodes, type, visited)
+							})
+						}
+					}
+					// look for connected nodes
+					findReturnNodes(childid, foundNodes, type, visited)
+				})
+			});
+		}
+	}
+	const findInstances = function (nodeid, foundNodes) {
+		function getInstanceById(nodeid) {
+			return RED.nodes.originalFlow().filter((node) => {
+				return node.type == "component" && node.targetComponent && node.targetComponent.id == nodeid;
+			});
+		}
+		getInstanceById(nodeid).forEach((inst) => {
+			foundNodes[inst.id] = inst
+		})
+	}
+
+	RED.nodes.registerType('component_in', {
+		category: COMPONENTS_CATEGORY,
+		color: COMPONENTS_COLOR,
+		defaults: {
+			name: { value: "component in" },
+			api: { value: [{ name: "prop", type: "string" }] },
+			node_is_not_connected: {
+				value: false, validate: function (v) {
+					// check if we have at least one node connected. Might be a "no-return" config
+					let node = RED.nodes.originalFlow().find((node) => {
+						return node.id == this.id;
+					});
+					return node.wires[0].length > 0
+				}
+			},
+			component_definitions_are_NOT_allowed_inside_subflows: {
+				value: RED.nodes.subflow(this.z), validate: function (v) {
+					return !RED.nodes.subflow(this.z)
+				}
+			},
+		},
+		label: function () {
+			if (RED.nodes.subflow(this.z)) {
+				return "Define Components only outside of subflows"
+			} else {
+				return this.name || "comp start";
+			}
+		},
+		inputs: 0,
+		outputs: 1,
+		icon: "inject.svg",
+		paletteLabel: "comp start",
+		oneditprepare: function () {
+			try {
+				if (RED.nodes.subflow(this.z)) {
+					$(".invalid").show()
+					$(".valid").hide()
+				} else {
+					$(".valid").show()
+					$(".invalid").hide()
+
+					let i18n = this._;
+					function resizeRule(item) {
+						// not used yet
+					}
+					$('#node-input-api-container').css('min-height', '250px').css('min-width', '450px').editableList({
+						addItem: function (container, i, property) {
+							if (!property.type) {
+								// empty, new item
+								property.type = "any";
+								property.required = true;
+							}
+							container.css({
+								overflow: 'hidden',
+								whiteSpace: 'nowrap'
+							});
+							var row1 = $('<div style="display: flex;"/>').appendTo(container);
+							//var row2 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
+
+							var propertyName = $('<input/>', { class: "node-input-property-name", style: "margin-right:10px; flex: 1 0 max-content;", type: "text", placeholder: "name" }).appendTo(row1);
+							var selectField = $('<select/>', { class: "node-input-property-type", style: "margin-right:10px;  flex: 0 0 min-content;" }).appendTo(row1);
+							var selectOptions = [{ v: "any", l: "any" }, { v: "string", l: "string" }, { v: "number", l: "number" }, { v: "json", l: "json" }, { v: "boolean", l: "boolean" }];
+							for (var i = 0; i < selectOptions.length; i++) {
+								selectField.append($("<option></option>").val(selectOptions[i].v).text(selectOptions[i].l));
+							}
+							// next column: checkboxes for required / validate stacked vertically
+							var checkBoxes = $('<div>', { style: "flex: 0 0 min-content; display: flex; flex-direction: column" }).appendTo(row1);
+
+							var checkRow1 = $('<div>', { style: "flex: 0 0 min-content; display: flex; align-items: top" }).appendTo(checkBoxes);
+							var required = $('<input/>', { id: "cb_required_" + i, class: "node-input-property-required", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
+							$('<label/>', { text: i18n("components.label.required"), 'for': 'cb_required_' + i, style: "flex: 2;" }).appendTo(checkRow1);
+							var global = $('<input/>', { id: "cb_globaL_" + i, class: "node-input-property-global", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
+							$('<label/>', { text: i18n("components.label.global"), 'for': 'cb_globaL_' + i, style: "flex: 2;" }).appendTo(checkRow1);
+
+							propertyName.val(property.name);
+							selectField.val(property.type);
+							required.prop("checked", property.required);
+							required.prop("checked", property.global);
+							// validate.prop("checked", property.validate);
+							resizeRule(container);
+						},
+						resizeItem: resizeRule,
+						removable: true,
+						sortable: true
+					});
+
+					if (!this.api) {
+						this.api = [];
+						this.api.push({ name: "payload", type: "any" });
+					}
+
+					// set api properties
+					for (var i = 0; i < this.api.length; i++) {
+						var prop = this.api[i];
+						$("#node-input-api-container").editableList('addItem', prop);
+					}
+				}
+
+			} catch (err) {
+				console.error(err);
+				throw err;
+			}
+		},
+		oneditsave: function () {
+			var api = $("#node-input-api-container").editableList('items');
+			var node = this;
+			node.api = [];
+			api.each(function (i) {
+				var property = $(this);
+				var name = property.find(".node-input-property-name").val();
+				var type = property.find(".node-input-property-type").val();
+				var required = property.find(".node-input-property-required")[0].checked;
+				var global = property.find(".node-input-property-global")[0].checked;
+				node.api.push({ name, type, required, global });
+			});
+		}
+	});
+</script>
+<script type="text/x-red" data-template-name="component_in">
+    <div class="form-row invalid" style="color: orange">
+        <label><i class="fa fa-exclamation-triangle"></i></label>
+        <span data-i18n="components.message.componentInSubflow"></span>
+    </div>
+    <div class="form-row valid">
+        <label for="node-input-name" data-i18n="components.label.name"><i class="icon-tag"></i></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
+    </div>
+	<div class="form-row valid" style="margin-bottom:0;">
+        <label data-i18n="components.label.api"><i class="fa fa-list"></i> </label>
+    </div>
+    <div class="form-row node-input-api-container-row valid">
+        <ol id="node-input-api-container"></ol>
+    </div>
+</script>
