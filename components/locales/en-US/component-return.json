@@ -1,0 +1,33 @@
+{
+    "components": {
+        "label": {
+            "api": "API",
+            "component": "Component",
+            "name": "Name",
+            "required": "required",
+            "status": "Status",
+            "mode": {
+                "label": "Output Port",
+                "default": "Default",
+                "separate": "Separate"
+            },
+            "outportChange": "Attention",
+            "componentInSubflow": "Not allowed inside subflows",
+            "global": "global"
+        },
+        "message": {
+            "invalid_comp": "component '__nodeId__' received invalid event. 'msg._comp' is 'undefined' or 'null'",
+            "invalid_stack": "component '__nodeId__' received invalid event. 'msg._comp.stack' is 'undefined' or 'null'",
+            "invalid_idMatch": "component '__nodeId__' received invalid event. ID does not match: __callerId__",
+            "lastCaller": "last caller",
+            "missingProperty": "component parameter '__parameter__' is required, but no value was found.",
+            "running": "running",
+            "validationError": "invalid parameter '__parameter__'. Expected type '__expected__', current type '__invalidType__'. Value is '__value__'.",
+            "jsonValidationError": "invalid parameter '__parameter__': Value is not a valid JSON: '__value__'.",
+            "outportChange": "Output ports have changed. Please save this Dialog to synchronize the number and labels.",
+            "componentInSubflow": "Components must NOT be defined inside subflows. Executing Components is permitted.",
+            "componentNotConnected": "This node has to be connected to a component.",
+            "returnWithoutStart": "A component return node must have exactly one component start node. Found __inNodeLength__ start nodes"
+        }
+    }
+}
