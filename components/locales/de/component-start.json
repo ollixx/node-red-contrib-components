@@ -1,0 +1,33 @@
+{
+    "components": {
+        "label": {
+            "api": "API",
+            "component": "Komponente",
+            "name": "Name",
+            "required": "erwartet",
+            "status": "Status",
+            "mode": {
+                "label": "Output Port",
+                "default": "Default",
+                "separate": "Einzel"
+            },
+            "outportChange": "Achtung",
+            "componentInSubflow": "Nicht erlaubt in Subflows",
+            "global": "global"
+        },
+        "message": {
+            "invalid_comp": "Komponente '__nodeId__' empfing inkorrektes Event. 'msg._comp' ist 'undefined' oder 'null'",
+            "invalid_stack": "Komponente '__nodeId__' empfing inkorrektes Event. 'msg._comp.stack' ist 'undefined' oder 'null'",
+            "invalid_idMatch": "Komponente '__nodeId__' empfing inkorrektes Event. ID stimmt nicht überein mit: __callerId__",
+            "lastCaller": "letzter Aufruf von",
+            "missingProperty": "Parameter '__parameter__' wird erwartet, hat aber keinen Wert.",
+            "running": "läuft",
+            "validationError": "Ungültiger Parameter '__parameter__'. Erwartet: '__expected__', Empfangen: '__invalidType__'. Wert: '__value__'.",
+            "jsonValidationError": "Ungültiger Parameter '__parameter__'. Wert konnte nicht als JSON validiert werden: '__value__'.",
+            "outportChange": "Die Output Ports haben sich geändert. Bitte diesen Dialog speichern, um die Anzahl und Bezeichnung der Ports zu aktualisieren.",
+            "componentInSubflow": "Components dürfen nicht innerhalb von subflows definiert werden. Nur das Ausführen von Components ist erlaubt.",
+            "componentNotConnected": "Für diesen Knoten muss eine Komponente ausgewählt werden.",
+            "returnWithoutStart": "Ein return Knoten muss mit genau einen start Knoten verbunden sein. Es sind jetzt __inNodeLength__ start Knoten verbunden."
+        }
+    }
+}

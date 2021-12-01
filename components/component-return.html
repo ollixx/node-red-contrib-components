@@ -1,0 +1,82 @@
+<!--
+			******* COMPONENT RETURN *************
+-->
+<script type="text/javascript">
+	const findStartNode = function (returnNodeId) {
+		let startNode = undefined
+		Object.values(RED.nodes.originalFlow()).forEach(n => {
+			if (n.type == "component_in") {
+				let foundList = {}
+				findReturnNodes(n.id, foundList)
+				if (foundList[returnNodeId]) {
+					startNode = n
+				}
+			}
+		})
+		return startNode
+	}
+
+	RED.nodes.registerType('component_out', {
+		category: COMPONENTS_CATEGORY,
+		color: COMPONENTS_COLOR,
+		label: function () {
+			if (RED.nodes.subflow(this.z)) {
+				return "Define Components only outside of subflows"
+			} else {
+				return this.name || "comp return";
+			}
+		},
+		align: 'right',
+		defaults: {
+			name: { value: null },
+			mode: { value: "default" },
+			node_is_not_connected: {
+				value: false, validate: function (v) {
+					let myStartNode = findStartNode(this.id)
+					return myStartNode !== undefined
+				}
+			},
+			component_definitions_are_NOT_allowed_inside_subflows: {
+				value: false, validate: function (v) {
+					return !RED.nodes.subflow(this.z)
+				}
+			},
+		},
+		inputs: 1,
+		outputs: 0,
+		icon: "font-awesome/fa-mail-reply",
+		paletteLabel: "comp return",
+		oneditprepare: function () {
+			// NOT allowed inside subflows.
+			if (RED.nodes.subflow(this.z)) {
+				$(".invalid").show()
+				$(".valid").hide()
+				//this.invalid = true;
+			} else {
+				// support legacy
+				if (this.mode === undefined) {
+					$('select option[value="default"]').attr("selected", true);
+				}
+				$(".valid").show()
+				$(".invalid").hide()
+			}
+		}
+	});
+</script>
+<script type="text/x-red" data-template-name="component_out">
+    <div class="form-row invalid" style="color: orange">
+        <label><i class="fa fa-exclamation-triangle"></i></label>
+        <span data-i18n="components.message.componentInSubflow"></span>
+    </div>
+    <div class="form-row valid">
+        <label for="node-input-name" data-i18n="components.label.name"><i class="icon-tag"></i></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
+    </div>
+    <div class="form-row valid">
+        <label for="node-input-mode" data-i18n="components.label.mode.label"><i class="icon-tag"></i></label>
+        <select id="node-input-mode">
+			<option value="default" data-i18n="components.label.mode.default" />
+			<option value="separate" data-i18n="components.label.mode.separate" />
+		</select>
+    </div>
+</script>

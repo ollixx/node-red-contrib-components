@@ -18,7 +18,9 @@
     ],
     "node-red": {
         "nodes": {
-            "components": "components/components.js"
+            "component-start": "components/component-start.js",
+            "component-return": "components/component-return.js",
+            "run-component": "components/run-component.js"
         }
     },
     "devDependencies": {
