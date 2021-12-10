@@ -6,39 +6,94 @@
 		category: COMPONENTS_CATEGORY,
 		color: COMPONENTS_COLOR,
 		label: function () {
-			return this.name || (this.targetComponent ? "-> " + this.targetComponent.name : false) || "run ???";
+			let targetComponent;
+			if (this.targetComponentId) {
+				targetComponent = RED.nodes.node(this.targetComponentId);
+			}
+			if (!targetComponent) {
+				if (this.targetComponent && this.targetComponent.id) {
+					targetComponent = RED.nodes.node(this.targetComponent.id);
+				}
+			}
+			return this.name ||
+				(targetComponent ? "-> " + targetComponent.name : false) ||
+				"run ???";
 		},
 		defaults: {
 			name: { value: "" },
 			targetComponent: {
-				value: null, required: true, validate: function (val) {
-					if (val && val.id) {
-						// check if target exists (might by stale)
-						if (RED.nodes.node(val.id)) return true
+				// legacy since 0.2.4
+				value: null
+			},
+			targetComponentId: {
+				value: null, validate: function (val) {
+					if (val) {
+						// check if target exists (might be stale)
+						if (RED.nodes.node(val)) return true
+					}
+					if (this.targetComponent && this.targetComponent.id) {
+						// check if target exists (might be stale)
+						if (RED.nodes.node(this.targetComponent.id)) return true
 					}
 					return false
 				}
 			},
 			paramSources: {
 				value: {}, validate: function (val) {
+					let targetComponentId = this.targetComponentId;
+					// check legacy
+					if (!targetComponentId && this.targetComponent && this.targetComponent.id) {
+						targetComponentId = this.targetComponent.id;
+					}
+					let targetComponent = RED.nodes.node(targetComponentId);
+					if (!targetComponent) {
+						// ??? could only happen, if START node was deleted and this property is validated before this.targetComponentId
+						// in that case we just ignore it and wait for validation of this.targetComponentId
+						return true; // basically means we don't further validate.
+					}
+					// first check, if we are missing a parameter from the api
+					let apiByName = {};
+					for (let p in targetComponent.api) {
+						let paramDef = targetComponent.api[p];
+						apiByName[paramDef.name] = paramDef;
+						let found = false;
+						for (let p in val) {
+							let param = val[p];
+							if (param.name == paramDef.name) {
+								found = true;
+							}
+						}
+						if (!found) {
+							console.log("validate error", this.id, "did not find a paramSource for api param", paramDef.name);
+							return false;
+						}
+					}
 					for (let p in val) {
 						let param = val[p]
+						let paramDef = apiByName[param.name];
+						if (!paramDef) {
+							// got no def, so this source is stale.
+							continue; // we ignore that, as the paramSource will vanish on Save.
+						}
 						let v = param.source
 						switch (param.sourceType) {
 							case "str": {
 								if (typeof v == "object") {
+									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting 'string', but got 'object'");
 									return false
 								}
 								break;
 							}
 							case "bool": {
 								if (v === null || v === undefined || v.length == 0 || (v !== 'true' && v !== 'false')) {
+									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting valid 'boolean', but got", v);
 									return false
 								}
 								break;
 							}
 							case "num": {
 								if (v === null || v === undefined || v.length == 0 || isNaN(parseFloat(v))) {
+									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting valid 'number', but got", v);
 									return false
 								}
 								break;
@@ -47,6 +102,7 @@
 							case "flow":
 							case "global": {
 								if (v === null || v === undefined || v.length == 0) {
+									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting input, but got", v);
 									return false
 								}
 								break;
@@ -58,17 +114,20 @@
 								try {
 									jsonata(v)
 								} catch (err) {
+									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting valid jsonata expression, but parsing failed", v, err);
 									return false
 								}
 								break;
 							}
 							case "json": {
 								if (v === null || v === undefined || v.length == 0) {
+									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting json expression, but got", v);
 									return false
 								}
 								try {
 									JSON.parse(v)
 								} catch (err) {
+									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting valid json expression, but parsing failed", v, err);
 									return false
 								}
 								break;
@@ -107,9 +166,9 @@
 
 				let config = this;
 
-				let updateParameters = function (compStartNode, paramSources) {
+				let updateParameters = function (targetComponentNode, paramSources) {
 					$("#node-input-parameter-container").editableList('empty');
-					let api = compStartNode.api;
+					let api = targetComponentNode.api;
 					for (var i = 0; i < api.length; i++) {
 						var param = $.extend({}, api[i]);
 						if (paramSources) {
@@ -123,9 +182,8 @@
 					}
 				}
 
-				let setLinkToDefinition = function (config, target) {
-					if (target) {
-						// $("#node-appname-message").text(config._("components/"));
+				let setLinkToDefinition = function (config, targetComponentId) {
+					if (targetComponentId) {
 						$("#node-jumplink").replaceWith(' <a id="node-jumplink" href="#"><b>Jump to node</b></a>');
 						$("#node-jumplink").on("click", function () {
 							// show webappNode in editor
@@ -136,9 +194,20 @@
 					}
 				}
 
-				// link to START node
-				setLinkToDefinition(config, config.targetComponent);
+				// find target component
+				let targetComponentId = config.targetComponentId;
+				// legacy since 0.2.4:
+				if (config.targetComponent) {
+					try {
+						test.puup;
+					} catch (err) { }
+					targetComponentId = config.targetComponent.id;
+					config.targetComponentId = targetComponentId;
+					delete config.targetComponent;
+				}
 
+				// link to START node
+				setLinkToDefinition(config, targetComponentId);
 
 				// select component
 				let tabs = {};
@@ -156,10 +225,12 @@
 						componentNodes[node.id] = node;
 					}
 				});
-				if (!config.targetComponent) {
+
+				if (!targetComponentId) {
 					// Add a nice "empty selection" option
 					$('<option value="choose" label="---"></option>').appendTo($("#node-input-selected"));
 				}
+
 				for (let z in tabs) {
 					let tab = tabs[z];
 					let optionGroup = $('<optgroup label="' + tab.label + '"></optgroup>').appendTo($("#node-input-selected"));
@@ -170,8 +241,8 @@
 						optionGroup.append(option);
 					}
 				}
-				if (config.targetComponent) {
-					$("#node-input-selected").val(config.targetComponent.id);
+				if (targetComponentId) {
+					$("#node-input-selected").val(targetComponentId);
 				}
 				$("#node-input-selected").change(function () {
 					let emptyOption = $("#node-input-selected option[value='choose']");
@@ -189,6 +260,7 @@
 					}
 				});
 
+				// status
 				var statusCtrl = $('#node-input-statuz');
 				statusCtrl.typedInput({
 					default: this.statuzType || "str",
@@ -265,46 +337,47 @@
 				this.observer.observe(document.querySelector('#node-input-parameter-container'))
 
 				$("#node-input-selected").change();
+
+				// Handle output ports depending on number of componet flow's return nodes.
+				if (targetComponentId) {
+					let node = this
+					let oldLabels = [...node.outLabels]
+					let newLabels = []
+
+					let foundReturnNodes = {}
+					findReturnNodes(targetComponentId, foundReturnNodes);
+					for (let key in foundReturnNodes) {
+						let retNode = foundReturnNodes[key]
+						if (retNode.mode && retNode.mode == "separate") {
+							newLabels.push(retNode.name || key)
+						} else {
+							if (newLabels.length == 0 || newLabels[0] != "default") {
+								newLabels.splice(0, 0, "default")
+							}
+						}
+					}
+					let diff = newLabels.length != oldLabels.length;
+					// check labels for changes
+					if (!diff) {
+						for (let i in newLabels) {
+							if (newLabels[i] != oldLabels[i]) {
+								diff = true;
+								break;
+							}
+						}
+					}
+					if (diff) {
+						$("#output-alert").show()
+					} else {
+						$("#output-alert").hide()
+					}
+				}
 			} catch (err) {
 				console.trace(err)
 				console.error(err.stack);
 				throw err;
 			}
 
-			// Handle output ports depending on number of componet flow's return nodes.
-			if (this.targetComponent) {
-				let node = this
-				let oldLabels = [...node.outLabels]
-				let newLabels = []
-
-				let foundReturnNodes = {}
-				findReturnNodes(node.targetComponent.id, foundReturnNodes)
-				for (let key in foundReturnNodes) {
-					let retNode = foundReturnNodes[key]
-					if (retNode.mode && retNode.mode == "separate") {
-						newLabels.push(retNode.name || key)
-					} else {
-						if (newLabels.length == 0 || newLabels[0] != "default") {
-							newLabels.splice(0, 0, "default")
-						}
-					}
-				}
-				let diff = newLabels.length != oldLabels.length;
-				// check labels for changes
-				if (!diff) {
-					for (let i in newLabels) {
-						if (newLabels[i] != oldLabels[i]) {
-							diff = true;
-							break;
-						}
-					}
-				}
-				if (diff) {
-					$("#output-alert").show()
-				} else {
-					$("#output-alert").hide()
-				}
-			}
 		},
 		oneditsave: function () {
 			var node = this;
@@ -318,31 +391,27 @@
 				this.statuzType = $("#node-input-statuz").typedInput('type');
 
 				// get target node 
-				node.targetComponent = null;
+				node.targetComponentId = selectedComponentId;
+				let targetComponent;
 				RED.nodes.eachNode(function (n) {
 					if (n.id == selectedComponentId) {
-						node.targetComponent = {
-							id: n.id,
-							name: n.name,
-							api: n.api
-						};
+						targetComponent = n;
 					}
 				});
 
-				if (node.targetComponent == null) {
+				if (targetComponent == null) {
 					throw "could not find target node for ID '" + selectedComponentId + "'";
 				}
 
 				// save parameters from list
 				var params = $("#node-input-parameter-container").editableList('items');
 				node.paramSources = {};
-				node.targetComponent.api.forEach(function (p) {
-					node.paramSources[p.name] = $.extend({}, p);
+				targetComponent.api.forEach(function (p) {
+					node.paramSources[p.name] = { name: p.name };
 				});
 				params.each(function (i) {
 					let item = $(this);
 					let name = item.find(".node-input-property-name").text();
-					let type = item.find(".node-input-property-type").text();
 					let source = item.find(".node-input-property-source input").typedInput('value');
 					let sourceType = item.find(".node-input-property-source input").typedInput('type');
 					let param = node.paramSources[name];
@@ -360,7 +429,7 @@
 
 			// Handle output ports depending on number of componet flow's return nodes.
 			let foundReturnNodes = {}
-			findReturnNodes(node.targetComponent.id, foundReturnNodes)
+			findReturnNodes(node.targetComponentId, foundReturnNodes)
 			node.outLabels = []
 			for (let key in foundReturnNodes) {
 				let retNode = foundReturnNodes[key]

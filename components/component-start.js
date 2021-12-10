@@ -72,6 +72,9 @@ module.exports = function (RED) {
     RED.nodes.createNode(this, config);
     var node = this;
 
+    node.usecontext = config.usecontext || false;
+    node.api = config.api; // keep in the node to let RUN nodes find it at runtime (after changes in START only)
+
     var startFlowHandler = function (msg) {
       try {
         if (isInvalidInSubflow(RED, node) == true) {

@@ -16,57 +16,74 @@ module.exports = function (RED) {
       }
 
       // target node's id (component in) to start flow
-      msg._comp.target = node.targetComponent.id;
+      msg._comp.target = node.targetComponentId;
+      let targetComponent = RED.nodes.getNode(node.targetComponentId);
+      let usecontext = targetComponent.usecontext;
+
       // push my ID onto the stack - the next return will come back to me
-      let context = {}; // context lives only until the next return node
-      msg._comp.stack.push({ callerId: node.id, targetId: node.targetComponent.id, context });
-      if (msg._comp.stack.length > 1) {
-        // connect to parent context
-        context._parent = msg._comp.stack.slice(-2)[0].context;
+      let stackEntry = { callerId: node.id, targetId: node.targetComponentId }
+      let context;
+      if (usecontext) {
+        context = {}; // context lives only until the next return node
+        if (msg._comp.stack.length > 1) {
+          // connect to parent context
+          context._parent = msg._comp.stack.slice(-2)[0].context;
+        }
+        stackEntry.context = context;
       }
+      console.log("start flow", node.id, "usecontext?", usecontext);
+      msg._comp.stack.push(stackEntry);
 
       // setup msg from parameters
       let validationErrors = {}
-      for (var paramName in node.paramSources) {
+      // we read the list from the current targetComponent, as it might have changed without touching the RUN node.
+      // That means, that some parameters are not reflected or changed in the paramSources.
+      // That also means, that the RUN node should only keep track of: name, source, sourceType
+      for (var paramIndex in targetComponent.api) {
+        let paramDef = targetComponent.api[paramIndex];
+        let paramName = paramDef.name;
         let paramSource = node.paramSources[paramName];
-        let sourceType = paramSource.sourceType;
         let val = null;
-        // make sure, the user entered a valid source
+
+        // If this RUN node has not yet a source definiton (was not touched after an API change), we just check for required params.
         if (!paramSource) {
-          validationErrors[paramName] = "missing source. please set the parameter to a valid input"
+          if (paramDef.required) {
+            validationErrors[paramName] = "missing source. please set the parameter to a valid input"
+          }
+          continue; // more cheks not possible if we have no paramSource here.
         }
+
         // an empty, optional parameter is evaluated only, if the source type is "string".
         // In that case, the parameter is set(!). It is not put into the message in all other cases.
-        if (paramSource.source && paramSource.source.length > 0 || sourceType == "str") {
+        if (paramSource.source && paramSource.source.length > 0 || paramSource.sourceType == "str") {
           val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
         }
         if (val == null || val == undefined) {
-          if (paramSource.required) {
-            node.status({ fill: "red", shape: "ring", text: RED._("components.label.required") + ": '" + paramSource.name + "'" });
-            validationErrors[paramName] = RED._("components.message.missingProperty", { parameter: paramSource.name });
+          if (paramDef.required) {
+            validationErrors[paramName] = RED._("components.message.missingProperty", { parameter: paramName });
           }
         } else {
           // validate types
           let type = typeof (val)
-          switch (paramSource.type) {
+          switch (paramDef.type) {
             case "num": {
               if (type != "number") {
                 validationErrors[paramName] = RED._("components.message.validationError",
-                  { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
+                  { parameter: paramName, expected: paramDef.type, invalidType: type, value: val });
               }
               break;
             }
             case "string": {
               if (type != "string") {
                 validationErrors[paramName] = RED._("components.message.validationError",
-                  { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
+                  { parameter: paramName, expected: paramDef.type, invalidType: type, value: val });
               }
               break;
             }
             case "boolean": {
               if (type != "boolean") {
                 validationErrors[paramName] = RED._("components.message.validationError",
-                  { parameter: paramSource.name, expected: paramSource.type, invalidType: type, value: val });
+                  { parameter: paramName, expected: paramDef.type, invalidType: type, value: val });
               }
               break;
             }
@@ -78,7 +95,7 @@ module.exports = function (RED) {
               } catch (err) {
                 console.error("invalid json", val)
                 validationErrors[paramName] = RED._("components.message.jsonValidationError",
-                  { parameter: paramSource.name, value: val });
+                  { parameter: paramName, value: val });
               }
               break;
             }
@@ -87,20 +104,25 @@ module.exports = function (RED) {
               break;
           }
         }
-        if (paramSource.global) {
-          msg[paramSource.name] = val;
+        if (usecontext && paramDef.contextOption) {
+          // local param
+          context[paramName] = val;
         } else {
-          context[paramSource.name] = val;
+          msg[paramName] = val;
         }
       }
-      if (Object.keys(validationErrors).length > 0) {
-        console.error("validation error", validationErrors);
-        node.error("validation error\n" + JSON.stringify(validationErrors));
-      }
-      msg.component = context; // use the new context as "component"
 
-      // send event
-      componentsEmitter.emit(EVENT_START_FLOW + "-" + node.targetComponent.id, msg);
+      if (usecontext) {
+        msg.component = context;
+      }
+
+      if (Object.keys(validationErrors).length > 0) {
+        node.status({ fill: "red", shape: "ring", text: RED._("components.message.hasValidationErrors") });
+        node.error({ validationErrors: validationErrors });
+      } else {
+        // send event
+        componentsEmitter.emit(EVENT_START_FLOW + "-" + node.targetComponentId, msg);
+      }
     } catch (err) {
       console.trace(err)
       node.error(err)
@@ -119,13 +141,13 @@ module.exports = function (RED) {
     RED.nodes.createNode(this, config);
 
     var node = this;
-    node.targetComponent = config.targetComponent;
+    node.targetComponentId = config.targetComponentId || config.targetComponent.id;
     node.paramSources = config.paramSources;
     node.statuz = config.statuz;
     node.statuzType = config.statuzType;
     node.outLabels = config.outLabels;
 
-    if (!node.targetComponent || !node.targetComponent.id) {
+    if (!node.targetComponentId) {
       node.error(RED._("components.message.componentNotConnected"))
       node.status({ fill: "red", shape: "dot", text: RED._("components.message.componentNotConnected") })
     }
@@ -162,7 +184,8 @@ module.exports = function (RED) {
       let stack = msg._comp.stack
       let returnNode = msg._comp.returnNode;
       let lastEntry = stack.slice(-1)[0];
-      let inOnlyScenario = !returnNode && lastEntry.targetId == node.targetComponent.id;
+      let usecontext = lastEntry.context ? true : false;
+      let inOnlyScenario = !returnNode && lastEntry.targetId == node.targetComponentId;
       let broadcastScenario = returnNode && returnNode.broadcast;
       let defaultScenario = returnNode && returnNode.callerId == config.id
       if (inOnlyScenario || broadcastScenario || defaultScenario) {
@@ -172,7 +195,7 @@ module.exports = function (RED) {
         if (stack.length == 0) {
           // stack is empty, so we are done.
           delete msg._comp; // -> following event listeners (component nodes) won't be able to handle this event.
-          if (inOnlyScenario) {
+          if (usecontext && !inOnlyScenario) {
             /*
             remove the component part, if we are in a regular flow (with a return node).
             If we are in a in-only scenario, we keep the msg.component alive. 
@@ -184,8 +207,14 @@ module.exports = function (RED) {
           }
         } else {
           // more on the stack, restore last context
-          let lastEntry = stack.slice(-1)[0];
-          msg.component = lastEntry.context;
+          if (usecontext) {
+            let lastEntry = stack.slice(-1)[0];
+            if (lastEntry.context) {
+              msg.component = lastEntry.context;
+            } else {
+              delete msg.component; // parent has no context (probably usecontext = false!)
+            }
+          }
         }
 
         // find outport
@@ -208,8 +237,6 @@ module.exports = function (RED) {
       }
     }
     componentsEmitter.on(EVENT_RETURN_FLOW + "-" + node.id, returnFromFlowHandler);
-    // global event for broadcasts of in-only flows (no return node)
-    componentsEmitter.on(EVENT_RETURN_FLOW, returnFromFlowHandler);
 
     /*
     if (isInvalidInSubflow(RED, node) == true) {
@@ -225,11 +252,12 @@ module.exports = function (RED) {
     });
 
     this.on("input", function (msg) {
-      if (!node.targetComponent || !node.targetComponent.id) {
+      if (!node.targetComponentId) {
         node.error(RED._("components.message.componentNotConnected"))
         node.status({ fill: "red", shape: "dot", text: RED._("components.message.componentNotConnected") })
         return
       }
+
       node.status({ fill: "green", shape: "ring", text: RED._("components.message.running") });
       sendStartFlow(msg, node);
     });
