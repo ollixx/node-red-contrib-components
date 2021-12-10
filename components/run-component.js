@@ -31,7 +31,6 @@ module.exports = function (RED) {
         }
         stackEntry.context = context;
       }
-      console.log("start flow", node.id, "usecontext?", usecontext);
       msg._comp.stack.push(stackEntry);
 
       // setup msg from parameters
