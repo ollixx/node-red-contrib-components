@@ -26,10 +26,12 @@
     "devDependencies": {
         "mocha": "^7.0.1",
         "node-red": "^1.2.2",
-        "node-red-node-test-helper": "^0.2.7"
+        "node-red-node-test-helper": "^0.2.7",
+        "puppeteer": "^12.0.1"
     },
     "dependencies": {},
     "scripts": {
-        "test": "mocha components/test/*_spec.js"
+        "test": "mocha components/test/*_spec.js",
+        "uitest": "npm --prefix ./components/uitest/ install; cd components/uitest/; mocha *_spec.js"
     }
 }

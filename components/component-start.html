@@ -68,15 +68,7 @@
 		defaults: {
 			name: { value: "component in" },
 			api: { value: [{ name: "prop", type: "string" }] },
-			node_is_not_connected: {
-				value: false, validate: function (v) {
-					// check if we have at least one node connected. Might be a "no-return" config
-					let node = RED.nodes.originalFlow().find((node) => {
-						return node.id == this.id;
-					});
-					return node.wires[0].length > 0
-				}
-			},
+			usecontext: { value: false },
 			component_definitions_are_NOT_allowed_inside_subflows: {
 				value: RED.nodes.subflow(this.z), validate: function (v) {
 					return !RED.nodes.subflow(this.z)
@@ -103,12 +95,24 @@
 					$(".valid").show()
 					$(".invalid").hide()
 
+					// context mode
+					let usecontext = this.usecontext || false;
+					let cbContext = $("#node-input-usecontext");
+					cbContext.prop("checked", usecontext);
+					cbContext.on("click", function () {
+						if (cbContext.prop("checked")) {
+							$(".contextoption").show();
+						} else {
+							$(".contextoption").hide();
+						}
+					});
+
 					let i18n = this._;
 					function resizeRule(item) {
 						// not used yet
 					}
 					$('#node-input-api-container').css('min-height', '250px').css('min-width', '450px').editableList({
-						addItem: function (container, i, property) {
+						addItem: function (container, index, property) {
 							if (!property.type) {
 								// empty, new item
 								property.type = "any";
@@ -131,16 +135,23 @@
 							var checkBoxes = $('<div>', { style: "flex: 0 0 min-content; display: flex; flex-direction: column" }).appendTo(row1);
 
 							var checkRow1 = $('<div>', { style: "flex: 0 0 min-content; display: flex; align-items: top" }).appendTo(checkBoxes);
-							var required = $('<input/>', { id: "cb_required_" + i, class: "node-input-property-required", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
-							$('<label/>', { text: i18n("components.label.required"), 'for': 'cb_required_' + i, style: "flex: 2;" }).appendTo(checkRow1);
-							var global = $('<input/>', { id: "cb_globaL_" + i, class: "node-input-property-global", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
-							$('<label/>', { text: i18n("components.label.global"), 'for': 'cb_globaL_' + i, style: "flex: 2;" }).appendTo(checkRow1);
+							var required = $('<input/>', { id: "cb_required_" + index, class: "node-input-property-required", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
+							$('<label/>', { text: i18n("components.label.required"), 'for': 'cb_required_' + index, style: "flex: 2;" }).appendTo(checkRow1);
+							var context = $('<input/>', { id: "cb_context_" + index, class: "node-input-property-contextoption contextoption", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
+							var contextLabel = $('<label/>', { text: i18n("components.label.context_local"), 'for': 'cb_context_' + index, style: "flex: 2;", class: "contextoption" }).appendTo(checkRow1);
+							if (usecontext) {
+								context.show();
+								contextLabel.show();
+							} else {
+								context.hide();
+								contextLabel.hide();
+							}
 
 							propertyName.val(property.name);
 							selectField.val(property.type);
 							required.prop("checked", property.required);
-							global.prop("checked", property.global);
-							// validate.prop("checked", property.validate);
+							context.prop("checked", property.contextOption); // TODO handle legacy property.global from 0.2.2 / 0.2.3
+
 							resizeRule(container);
 						},
 						resizeItem: resizeRule,
@@ -158,6 +169,7 @@
 						var prop = this.api[i];
 						$("#node-input-api-container").editableList('addItem', prop);
 					}
+
 				}
 
 			} catch (err) {
@@ -174,8 +186,8 @@
 				var name = property.find(".node-input-property-name").val();
 				var type = property.find(".node-input-property-type").val();
 				var required = property.find(".node-input-property-required")[0].checked;
-				var global = property.find(".node-input-property-global")[0].checked;
-				node.api.push({ name, type, required, global });
+				var contextOption = property.find(".node-input-property-contextoption")[0].checked;
+				node.api.push({ name, type, required, contextOption });
 			});
 		}
 	});
@@ -189,6 +201,11 @@
         <label for="node-input-name" data-i18n="components.label.name"><i class="icon-tag"></i></label>
         <input type="text" id="node-input-name" data-i18n="[placeholder]components.label.name">
     </div>
+	<div class="form-row">
+		<label></label>
+		<input id="node-input-usecontext" type="checkbox" style="margin-left:0px; vertical-align:top; width:auto !important;"></input>
+		<label for="node-input-usecontext" style="width:auto !important;" data-i18n="components.label.usecontext"></label>
+	</div>
 	<div class="form-row valid" style="margin-bottom:0;">
         <label data-i18n="components.label.api"><i class="fa fa-list"></i> </label>
     </div>

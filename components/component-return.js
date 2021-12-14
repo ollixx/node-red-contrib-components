@@ -133,21 +133,31 @@ module.exports = function (RED) {
           try {
             RED.nodes.eachNode((runNode) => {
               if (runNode.type == "component") {
-                if (runNode.targetComponent && runNode.targetComponent.id == node.inNode.id) {
+                let targetComponent = RED.nodes.getNode(runNode.targetComponentId);
+                // legacy
+                if (!targetComponent) {
+                  targetComponent = RED.nodes.getNode(runNode.targetComponent.id);
+                }
+
+                if (targetComponent && targetComponent.id == node.inNode.id) {
                   if (msg._comp === undefined) {
                     msg._comp = {
                       stack: []
                     };
                   }
-                  msg._comp.target = runNode.targetComponent.id;
-                  msg._comp.stack.push({ callerId: runNode.id, targetId: runNode.targetComponent.id, context: {} })
+                  msg._comp.target = targetComponent.id;
+                  let stackEntry = { callerId: runNode.id, targetId: targetComponent.id };
+                  if (targetComponent && targetComponent.usecontext) {
+                    stackEntry.context = {}
+                  }
+                  msg._comp.stack.push(stackEntry)
                   msg._comp.returnNode = {
                     id: node.id,
                     mode: node.mode,
                     name: node.name,
                     broadcast: true
                   }
-                  componentsEmitter.emit(EVENT_RETURN_FLOW, msg);
+                  componentsEmitter.emit(EVENT_RETURN_FLOW + "-" + runNode.id, msg);
                 }
               }
             });

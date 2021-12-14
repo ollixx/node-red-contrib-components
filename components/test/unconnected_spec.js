@@ -59,16 +59,4 @@ describe('unconnected ', function () {
         });
     });
 
-    it('run nodes should throw an error', function (done) {
-        helper.load([componentStart, componentReturn, runComponent], flowWithUnconnectedInNode, {}, function () {
-            const run01 = helper.getNode('run01')
-            run01.error.should.be.called()
-
-            run01.on('input', () => {
-                run01.error.should.be.called()
-                done();
-            });
-            run01.receive({ test: true });
-        });
-    });
 });

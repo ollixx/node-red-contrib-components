@@ -9,10 +9,10 @@
                 "name": "prop",
                 "type": "json",
                 "required": true,
-                "global": false
+                "contextOption": true
             }
         ],
-        "node_is_not_connected": false,
+        "usecontext": true,
         "x": 110,
         "y": 280,
         "wires": [
@@ -26,24 +26,10 @@
         "type": "component",
         "z": "aa8d4fd1ad84c1f0",
         "name": "",
-        "targetComponent": {
-            "id": "a6a8a672c69ba580",
-            "name": "handle",
-            "api": [
-                {
-                    "name": "prop",
-                    "type": "json",
-                    "required": true,
-                    "global": false
-                }
-            ]
-        },
+        "targetComponentId": "a6a8a672c69ba580",
         "paramSources": {
             "prop": {
                 "name": "prop",
-                "type": "json",
-                "required": true,
-                "global": false,
                 "source": "payload.1",
                 "sourceType": "msg"
             }
@@ -141,24 +127,10 @@
         "type": "component",
         "z": "aa8d4fd1ad84c1f0",
         "name": "",
-        "targetComponent": {
-            "id": "a6a8a672c69ba580",
-            "name": "handle",
-            "api": [
-                {
-                    "name": "prop",
-                    "type": "json",
-                    "required": true,
-                    "global": false
-                }
-            ]
-        },
+        "targetComponentId": "a6a8a672c69ba580",
         "paramSources": {
             "prop": {
                 "name": "prop",
-                "type": "json",
-                "required": true,
-                "global": false,
                 "source": "component.child",
                 "sourceType": "msg"
             }

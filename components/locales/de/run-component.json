@@ -12,8 +12,7 @@
                 "separate": "Einzel"
             },
             "outportChange": "Achtung",
-            "componentInSubflow": "Nicht erlaubt in Subflows",
-            "global": "global"
+            "componentInSubflow": "Nicht erlaubt in Subflows"
         },
         "message": {
             "invalid_comp": "Komponente '__nodeId__' empfing inkorrektes Event. 'msg._comp' ist 'undefined' oder 'null'",
@@ -22,6 +21,7 @@
             "lastCaller": "letzter Aufruf von",
             "missingProperty": "Parameter '__parameter__' wird erwartet, hat aber keinen Wert.",
             "running": "läuft",
+            "hasValidationErrors": "Ungültige Parameter",
             "validationError": "Ungültiger Parameter '__parameter__'. Erwartet: '__expected__', Empfangen: '__invalidType__'. Wert: '__value__'.",
             "jsonValidationError": "Ungültiger Parameter '__parameter__'. Wert konnte nicht als JSON validiert werden: '__value__'.",
             "outportChange": "Die Output Ports haben sich geändert. Bitte diesen Dialog speichern, um die Anzahl und Bezeichnung der Ports zu aktualisieren.",

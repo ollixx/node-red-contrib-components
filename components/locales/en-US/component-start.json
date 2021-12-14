@@ -13,7 +13,8 @@
             },
             "outportChange": "Attention",
             "componentInSubflow": "Not allowed inside subflows",
-            "global": "global"
+            "usecontext": "Use local context",
+            "context_local": "local"
         },
         "message": {
             "invalid_comp": "component '__nodeId__' received invalid event. 'msg._comp' is 'undefined' or 'null'",

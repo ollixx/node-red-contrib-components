@@ -2,19 +2,83 @@
 			******* COMPONENT RETURN *************
 -->
 <script type="text/javascript">
-	const findStartNode = function (returnNodeId) {
-		let startNode = undefined
-		Object.values(RED.nodes.originalFlow()).forEach(n => {
-			if (n.type == "component_in") {
-				let foundList = {}
-				findReturnNodes(n.id, foundList)
-				if (foundList[returnNodeId]) {
-					startNode = n
+	const findStartNodes = function (nodeId, sources = {}, visited = [], found = []) {
+		if (visited.includes(nodeId)) {
+			return sources;
+		}
+		visited.push(nodeId);
+		let node = RED.nodes.node(nodeId);
+		if (node.type == "component_in") {
+			found.push(nodeId);
+		}
+		RED.nodes.eachLink((link) => {
+			if (link.target.id == nodeId) {
+				sources[link.source.id] = {};
+				findStartNodes(link.source.id, sources[link.source.id], visited, found);
+			}
+		});
+		if (node.type == "link in") {
+			let linkOuts = node.links;
+			for (let lout of linkOuts) {
+				sources[lout] = {};
+				findStartNodes(lout, sources[lout], visited, found);
+			};
+		}
+		return found;
+	};
+
+	const MSG_NOT_CONNECTED = "node is not connected";
+	const MSG_TOO_MANY_START_NODES = "node is connected to multiple start nodes";
+
+	const doValidate = function (val) {
+		let node = val;
+		if (typeof (val) != "object") {
+			node = RED.nodes.node(this.id);
+		}
+		if (!node.validationErrors) {
+			node.validationErrors = [];
+		}
+		let startNodes = findStartNodes(node.id);
+		if (startNodes.length == 0) {
+			if (!node.validationErrors.includes(MSG_NOT_CONNECTED)) {
+				node.validationErrors.push(MSG_NOT_CONNECTED);
+				node.change = true;
+				RED.view.redraw(node);
+			}
+		} else if (startNodes.length > 1) {
+			if (!node.validationErrors.includes(MSG_TOO_MANY_START_NODES)) {
+				node.validationErrors.push(MSG_TOO_MANY_START_NODES);
+				node.change = true;
+				RED.view.redraw(node);
+			}
+		} else {
+			if (node.validationErrors.includes(MSG_NOT_CONNECTED)) {
+				const index = node.validationErrors.indexOf(MSG_NOT_CONNECTED);
+				if (index > -1) {
+					node.validationErrors.splice(index, 1);
+					node.change = true;
+					RED.view.redraw(node);
 				}
 			}
-		})
-		return startNode
+			if (node.validationErrors.includes(MSG_TOO_MANY_START_NODES)) {
+				const index = node.validationErrors.indexOf(MSG_TOO_MANY_START_NODES);
+				if (index > -1) {
+					node.validationErrors.splice(index, 1);
+					node.change = true;
+					RED.view.redraw(node);
+				}
+			}
+		}
+		node.valid = node.validationErrors.length == 0;
+		return node.valid;
 	}
+
+	const handlerX = function (event) {
+		if (event.node.type == "component_out") {
+			doValidate(event.node)
+		}
+	};
+	RED.hooks.add("viewRedrawNode", handlerX);
 
 	RED.nodes.registerType('component_out', {
 		category: COMPONENTS_CATEGORY,
@@ -28,14 +92,8 @@
 		},
 		align: 'right',
 		defaults: {
-			name: { value: null },
+			name: { value: null, validate: doValidate },
 			mode: { value: "default" },
-			node_is_not_connected: {
-				value: false, validate: function (v) {
-					let myStartNode = findStartNode(this.id)
-					return myStartNode !== undefined
-				}
-			},
 			component_definitions_are_NOT_allowed_inside_subflows: {
 				value: false, validate: function (v) {
 					return !RED.nodes.subflow(this.z)
