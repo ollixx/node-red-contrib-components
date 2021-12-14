@@ -13,7 +13,8 @@
             },
             "outportChange": "Achtung",
             "componentInSubflow": "Nicht erlaubt in Subflows",
-            "global": "global"
+            "usecontext": "Use local context",
+            "context_local": "local"
         },
         "message": {
             "invalid_comp": "Komponente '__nodeId__' empfing inkorrektes Event. 'msg._comp' ist 'undefined' oder 'null'",

@@ -18,8 +18,7 @@
         "type": "tab",
         "label": "errors",
         "disabled": true,
-        "info": "",
-        "env": []
+        "info": ""
     },
     {
         "id": "aa8d4fd1ad84c1f0",
@@ -33,8 +32,14 @@
         "type": "tab",
         "label": "in-only & broadcast",
         "disabled": false,
-        "info": "",
-        "env": []
+        "info": ""
+    },
+    {
+        "id": "30c0d1a0cd4cfe1d",
+        "type": "tab",
+        "label": "context",
+        "disabled": false,
+        "info": ""
     },
     {
         "id": "577a607a.ae90e",
@@ -248,27 +253,32 @@
             {
                 "name": "name1",
                 "type": "string",
-                "required": true
+                "required": true,
+                "global": false
             },
             {
                 "name": "Das ist ein längerer",
                 "type": "json",
-                "required": true
+                "required": true,
+                "global": false
             },
             {
                 "name": "number",
                 "type": "number",
-                "required": true
+                "required": true,
+                "global": false
             },
             {
                 "name": "bool",
                 "type": "boolean",
-                "required": true
+                "required": true,
+                "global": false
             },
             {
                 "name": "sdfsdfdfsd",
                 "type": "any",
-                "required": true
+                "required": true,
+                "global": false
             }
         ],
         "x": 130,
@@ -285,7 +295,7 @@
         "z": "22d80fc6.ada47",
         "name": "ret 01a",
         "mode": "default",
-        "x": 670,
+        "x": 650,
         "y": 460,
         "wires": []
     },
@@ -450,70 +460,30 @@
         "type": "component",
         "z": "22d80fc6.ada47",
         "name": "run 01",
-        "targetComponent": {
-            "id": "dcdfa483.b6b2d8",
-            "name": "Component 1",
-            "api": [
-                {
-                    "name": "name1",
-                    "type": "string",
-                    "required": true
-                },
-                {
-                    "name": "Das ist ein längerer",
-                    "type": "json",
-                    "required": true
-                },
-                {
-                    "name": "number",
-                    "type": "number",
-                    "required": true
-                },
-                {
-                    "name": "bool",
-                    "type": "boolean",
-                    "required": true
-                },
-                {
-                    "name": "sdfsdfdfsd",
-                    "type": "any",
-                    "required": true
-                }
-            ]
-        },
+        "targetComponentId": "dcdfa483.b6b2d8",
         "paramSources": {
             "name1": {
                 "name": "name1",
-                "type": "string",
-                "required": true,
                 "source": "\"Test\"",
                 "sourceType": "jsonata"
             },
             "Das ist ein längerer": {
                 "name": "Das ist ein längerer",
-                "type": "json",
-                "required": true,
                 "source": "[\"a\", \"b\"]",
                 "sourceType": "json"
             },
             "number": {
                 "name": "number",
-                "type": "number",
-                "required": true,
                 "source": "4",
                 "sourceType": "json"
             },
             "bool": {
                 "name": "bool",
-                "type": "boolean",
-                "required": true,
                 "source": "true",
                 "sourceType": "bool"
             },
             "sdfsdfdfsd": {
                 "name": "sdfsdfdfsd",
-                "type": "any",
-                "required": true,
                 "source": "{}",
                 "sourceType": "json"
             }
@@ -638,22 +608,7 @@
         "type": "component",
         "z": "5d0725e9aadb00ed",
         "name": "run",
-        "targetComponent": {
-            "id": "4805cfb8e105bf51",
-            "name": "Issue 25",
-            "api": [
-                {
-                    "name": "must",
-                    "type": "any",
-                    "required": true
-                },
-                {
-                    "name": "could2",
-                    "type": "any",
-                    "required": false
-                }
-            ]
-        },
+        "targetComponentId": "4805cfb8e105bf51",
         "paramSources": {
             "must": {
                 "name": "must",
@@ -822,11 +777,7 @@
         "type": "component",
         "z": "5d0725e9aadb00ed",
         "name": "run 04",
-        "targetComponent": {
-            "id": "c58cbb4f.4a7a98",
-            "name": "Component 4",
-            "api": []
-        },
+        "targetComponentId": "c58cbb4f.4a7a98",
         "paramSources": {},
         "statuz": "",
         "statuzType": "str",
@@ -1219,7 +1170,6 @@
         "persist": false,
         "proxy": "",
         "authType": "",
-        "senderr": false,
         "x": 330,
         "y": 980,
         "wires": [
@@ -1723,10 +1673,10 @@
                 "name": "prop",
                 "type": "json",
                 "required": true,
-                "global": false
+                "contextOption": true
             }
         ],
-        "node_is_not_connected": false,
+        "usecontext": true,
         "x": 110,
         "y": 280,
         "wires": [
@@ -1740,24 +1690,10 @@
         "type": "component",
         "z": "aa8d4fd1ad84c1f0",
         "name": "",
-        "targetComponent": {
-            "id": "a6a8a672c69ba580",
-            "name": "handle",
-            "api": [
-                {
-                    "name": "prop",
-                    "type": "json",
-                    "required": true,
-                    "global": false
-                }
-            ]
-        },
+        "targetComponentId": "a6a8a672c69ba580",
         "paramSources": {
             "prop": {
                 "name": "prop",
-                "type": "json",
-                "required": true,
-                "global": false,
                 "source": "payload.1",
                 "sourceType": "msg"
             }
@@ -1855,24 +1791,10 @@
         "type": "component",
         "z": "aa8d4fd1ad84c1f0",
         "name": "",
-        "targetComponent": {
-            "id": "a6a8a672c69ba580",
-            "name": "handle",
-            "api": [
-                {
-                    "name": "prop",
-                    "type": "json",
-                    "required": true,
-                    "global": false
-                }
-            ]
-        },
+        "targetComponentId": "a6a8a672c69ba580",
         "paramSources": {
             "prop": {
                 "name": "prop",
-                "type": "json",
-                "required": true,
-                "global": false,
                 "source": "component.child",
                 "sourceType": "msg"
             }
@@ -1950,7 +1872,6 @@
                 "global": false
             }
         ],
-        "node_is_not_connected": false,
         "x": 190,
         "y": 140,
         "wires": [
@@ -2077,7 +1998,6 @@
         "z": "6542e73107b394b8",
         "name": "",
         "mode": "default",
-        "node_is_not_connected": false,
         "component_definitions_are_NOT_allowed_inside_subflows": false,
         "x": 390,
         "y": 360,
@@ -2089,7 +2009,7 @@
         "z": "6542e73107b394b8",
         "name": "broadcast",
         "api": [],
-        "node_is_not_connected": false,
+        "usecontext": true,
         "x": 180,
         "y": 360,
         "wires": [
@@ -2196,5 +2116,194 @@
         "x": 590,
         "y": 140,
         "wires": []
+    },
+    {
+        "id": "f2cee2089b3e32f4",
+        "type": "component_in",
+        "z": "30c0d1a0cd4cfe1d",
+        "name": "context test",
+        "api": [
+            {
+                "name": "local",
+                "type": "string",
+                "required": true,
+                "contextOption": true
+            },
+            {
+                "name": "global",
+                "type": "string",
+                "required": true,
+                "contextOption": false
+            },
+            {
+                "name": "new",
+                "type": "any",
+                "required": true,
+                "contextOption": true
+            },
+            {
+                "name": "more",
+                "type": "any",
+                "required": false,
+                "contextOption": false
+            }
+        ],
+        "usecontext": true,
+        "x": 260,
+        "y": 280,
+        "wires": [
+            [
+                "eb40fac2aaf55e1d",
+                "98717880920f80cd"
+            ]
+        ]
+    },
+    {
+        "id": "eb40fac2aaf55e1d",
+        "type": "component_out",
+        "z": "30c0d1a0cd4cfe1d",
+        "name": "",
+        "mode": "default",
+        "component_definitions_are_NOT_allowed_inside_subflows": false,
+        "x": 550,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "98717880920f80cd",
+        "type": "debug",
+        "z": "30c0d1a0cd4cfe1d",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 530,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "964a1a83684e53d4",
+        "type": "component",
+        "z": "30c0d1a0cd4cfe1d",
+        "name": "",
+        "targetComponentId": "f2cee2089b3e32f4",
+        "paramSources": {
+            "local": {
+                "name": "local",
+                "source": "LOKAL",
+                "sourceType": "str"
+            },
+            "global": {
+                "name": "global",
+                "source": "GLOBAL",
+                "sourceType": "str"
+            },
+            "new": {
+                "name": "new",
+                "source": "nix",
+                "sourceType": "str"
+            },
+            "more": {
+                "name": "more",
+                "source": "mehr",
+                "sourceType": "msg"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 340,
+        "y": 160,
+        "wires": [
+            [
+                "a624eea87150a7ba"
+            ]
+        ]
+    },
+    {
+        "id": "a624eea87150a7ba",
+        "type": "debug",
+        "z": "30c0d1a0cd4cfe1d",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 530,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "54443514c513ade4",
+        "type": "catch",
+        "z": "30c0d1a0cd4cfe1d",
+        "name": "",
+        "scope": null,
+        "uncaught": false,
+        "x": 270,
+        "y": 420,
+        "wires": [
+            [
+                "55e62fa1f68fcba7"
+            ]
+        ]
+    },
+    {
+        "id": "55e62fa1f68fcba7",
+        "type": "debug",
+        "z": "30c0d1a0cd4cfe1d",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 450,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "0308a944488b3139",
+        "type": "inject",
+        "z": "30c0d1a0cd4cfe1d",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 170,
+        "y": 160,
+        "wires": [
+            [
+                "964a1a83684e53d4"
+            ]
+        ]
     }
 ]
