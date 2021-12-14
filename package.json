@@ -1,7 +1,7 @@
 {
     "name": "node-red-contrib-components",
     "description": "reusable flows with a well defined API. Write components and use them anywhere in your node-red app",
-    "version": "0.2.3",
+    "version": "0.3.1",
     "license": "MIT",
     "author": "Oliver Charlet <oliver.charlet@clarities.de>",
     "repository": {
