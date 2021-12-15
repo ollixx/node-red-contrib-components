@@ -184,10 +184,11 @@
 
 				let setLinkToDefinition = function (config, targetComponentId) {
 					if (targetComponentId) {
+						const targetId = targetComponentId;
 						$("#node-jumplink").replaceWith(' <a id="node-jumplink" href="#"><b>Jump to node</b></a>');
 						$("#node-jumplink").on("click", function () {
 							// show webappNode in editor
-							RED.view.reveal(target.id);
+							RED.view.reveal(targetId);
 							// close the editor tray
 							$("#node-dialog-cancel").click();
 						});
@@ -198,9 +199,6 @@
 				let targetComponentId = config.targetComponentId;
 				// legacy since 0.2.4:
 				if (config.targetComponent) {
-					try {
-						test.puup;
-					} catch (err) { }
 					targetComponentId = config.targetComponent.id;
 					config.targetComponentId = targetComponentId;
 					delete config.targetComponent;
@@ -255,8 +253,6 @@
 						}
 						// set the API list
 						updateParameters(componentNodes[selectedNodeId], config.paramSources);
-						// set link
-						setLinkToDefinition(config, componentNodes[selectedNodeId]);
 					}
 				});
 
