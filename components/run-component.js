@@ -65,7 +65,7 @@ module.exports = function (RED) {
           // validate types
           let type = typeof (val)
           switch (paramDef.type) {
-            case "num": {
+            case "number": {
               if (type != "number") {
                 validationErrors[paramName] = RED._("components.message.validationError",
                   { parameter: paramName, expected: paramDef.type, invalidType: type, value: val });
@@ -92,7 +92,6 @@ module.exports = function (RED) {
                   JSON.parse(val);
                 }
               } catch (err) {
-                console.error("invalid json", val)
                 validationErrors[paramName] = RED._("components.message.jsonValidationError",
                   { parameter: paramName, value: val });
               }
