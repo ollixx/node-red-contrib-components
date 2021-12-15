@@ -1055,7 +1055,7 @@
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "x": 150,
+        "x": 170,
         "y": 980,
         "wires": [
             [
@@ -1540,6 +1540,333 @@
         "x": 360,
         "y": 1280,
         "wires": []
+    },
+    {
+        "id": "56b7dfc0ef8225bc",
+        "type": "component_in",
+        "z": "5d0725e9aadb00ed",
+        "name": "validations",
+        "api": [
+            {
+                "name": "string",
+                "type": "string",
+                "required": false,
+                "contextOption": false
+            },
+            {
+                "name": "number",
+                "type": "number",
+                "required": false,
+                "contextOption": false
+            },
+            {
+                "name": "json",
+                "type": "json",
+                "required": false,
+                "contextOption": false
+            },
+            {
+                "name": "boolean",
+                "type": "boolean",
+                "required": false,
+                "contextOption": false
+            },
+            {
+                "name": "any",
+                "type": "any",
+                "required": false,
+                "contextOption": false
+            },
+            {
+                "name": "req_string",
+                "type": "string",
+                "required": true,
+                "contextOption": false
+            },
+            {
+                "name": "req_number",
+                "type": "number",
+                "required": true,
+                "contextOption": false
+            },
+            {
+                "name": "req_json",
+                "type": "json",
+                "required": true,
+                "contextOption": false
+            },
+            {
+                "name": "req_boolean",
+                "type": "boolean",
+                "required": true,
+                "contextOption": false
+            },
+            {
+                "name": "req_any",
+                "type": "any",
+                "required": true,
+                "contextOption": false
+            }
+        ],
+        "usecontext": false,
+        "x": 900,
+        "y": 1120,
+        "wires": [
+            [
+                "0df189855efd2172"
+            ]
+        ]
+    },
+    {
+        "id": "0df189855efd2172",
+        "type": "component_out",
+        "z": "5d0725e9aadb00ed",
+        "name": null,
+        "mode": "default",
+        "component_definitions_are_NOT_allowed_inside_subflows": false,
+        "x": 1070,
+        "y": 1120,
+        "wires": []
+    },
+    {
+        "id": "7dae5d568ceb479b",
+        "type": "component",
+        "z": "5d0725e9aadb00ed",
+        "name": "",
+        "targetComponent": null,
+        "targetComponentId": "56b7dfc0ef8225bc",
+        "paramSources": {
+            "string": {
+                "name": "string",
+                "source": "payload",
+                "sourceType": "msg"
+            },
+            "number": {
+                "name": "number",
+                "source": "payload",
+                "sourceType": "msg"
+            },
+            "json": {
+                "name": "json",
+                "source": "payload",
+                "sourceType": "msg"
+            },
+            "boolean": {
+                "name": "boolean",
+                "source": "payload",
+                "sourceType": "msg"
+            },
+            "any": {
+                "name": "any",
+                "source": "payload",
+                "sourceType": "msg"
+            },
+            "req_string": {
+                "name": "req_string",
+                "source": "payload",
+                "sourceType": "msg"
+            },
+            "req_number": {
+                "name": "req_number",
+                "source": "payload",
+                "sourceType": "msg"
+            },
+            "req_json": {
+                "name": "req_json",
+                "source": "payload",
+                "sourceType": "msg"
+            },
+            "req_boolean": {
+                "name": "req_boolean",
+                "source": "payload",
+                "sourceType": "msg"
+            },
+            "req_any": {
+                "name": "req_any",
+                "source": "payload",
+                "sourceType": "msg"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 1080,
+        "y": 980,
+        "wires": [
+            [
+                "5b37d8220f15f715"
+            ]
+        ]
+    },
+    {
+        "id": "57b109cf423186dc",
+        "type": "inject",
+        "z": "5d0725e9aadb00ed",
+        "name": "string",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "test",
+        "payloadType": "str",
+        "x": 890,
+        "y": 920,
+        "wires": [
+            [
+                "7dae5d568ceb479b"
+            ]
+        ]
+    },
+    {
+        "id": "5b37d8220f15f715",
+        "type": "debug",
+        "z": "5d0725e9aadb00ed",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1250,
+        "y": 980,
+        "wires": []
+    },
+    {
+        "id": "279d0624937ea344",
+        "type": "inject",
+        "z": "5d0725e9aadb00ed",
+        "name": "number",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "42",
+        "payloadType": "num",
+        "x": 890,
+        "y": 960,
+        "wires": [
+            [
+                "7dae5d568ceb479b"
+            ]
+        ]
+    },
+    {
+        "id": "fecfb96332e0949a",
+        "type": "inject",
+        "z": "5d0725e9aadb00ed",
+        "name": "boolean",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "true",
+        "payloadType": "bool",
+        "x": 890,
+        "y": 1000,
+        "wires": [
+            [
+                "7dae5d568ceb479b"
+            ]
+        ]
+    },
+    {
+        "id": "1194e31f1ab352e4",
+        "type": "inject",
+        "z": "5d0725e9aadb00ed",
+        "name": "array",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "[]",
+        "payloadType": "json",
+        "x": 890,
+        "y": 1040,
+        "wires": [
+            [
+                "7dae5d568ceb479b"
+            ]
+        ]
+    },
+    {
+        "id": "480e6b002856637c",
+        "type": "inject",
+        "z": "5d0725e9aadb00ed",
+        "name": "object",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{}",
+        "payloadType": "json",
+        "x": 890,
+        "y": 1080,
+        "wires": [
+            [
+                "7dae5d568ceb479b"
+            ]
+        ]
+    },
+    {
+        "id": "e9e61bbfcc5fbbe4",
+        "type": "inject",
+        "z": "5d0725e9aadb00ed",
+        "name": "json string",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "\"test\"",
+        "payloadType": "str",
+        "x": 900,
+        "y": 880,
+        "wires": [
+            [
+                "7dae5d568ceb479b"
+            ]
+        ]
     },
     {
         "id": "c3f4e224d5daeffd",
@@ -2138,7 +2465,7 @@
             {
                 "name": "new",
                 "type": "any",
-                "required": true,
+                "required": false,
                 "contextOption": true
             },
             {
@@ -2200,13 +2527,13 @@
             },
             "global": {
                 "name": "global",
-                "source": "GLOBAL",
-                "sourceType": "str"
+                "source": "payload",
+                "sourceType": "msg"
             },
             "new": {
                 "name": "new",
                 "source": "nix",
-                "sourceType": "str"
+                "sourceType": "msg"
             },
             "more": {
                 "name": "more",
