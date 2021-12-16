@@ -67,8 +67,8 @@
 		color: COMPONENTS_COLOR,
 		defaults: {
 			name: { value: "component in" },
-			api: { value: [{ name: "prop", type: "string" }] },
-			usecontext: { value: false },
+			api: { value: [{ name: "prop", type: "json" }] },
+			usecontext: { value: true },
 			component_definitions_are_NOT_allowed_inside_subflows: {
 				value: RED.nodes.subflow(this.z), validate: function (v) {
 					return !RED.nodes.subflow(this.z)
@@ -115,8 +115,8 @@
 						addItem: function (container, index, property) {
 							if (!property.type) {
 								// empty, new item
-								property.type = "any";
-								property.required = true;
+								property.type = "json";
+								property.required = false;
 							}
 							container.css({
 								overflow: 'hidden',
@@ -149,19 +149,14 @@
 
 							propertyName.val(property.name);
 							selectField.val(property.type);
-							required.prop("checked", property.required);
-							context.prop("checked", property.contextOption); // TODO handle legacy property.global from 0.2.2 / 0.2.3
+							required.prop("checked", property.required || false);
+							context.prop("checked", property.contextOption || usecontext);
 							resizeRule(container);
 						},
 						resizeItem: resizeRule,
 						removable: true,
 						sortable: true
 					});
-
-					if (!this.api) {
-						this.api = [];
-						this.api.push({ name: "payload", type: "any" });
-					}
 
 					// set api properties
 					for (var i = 0; i < this.api.length; i++) {

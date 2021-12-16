@@ -32,7 +32,7 @@
 
 	const doValidate = function (val) {
 		let node = val;
-		if (typeof (val) != "object") {
+		if (val == null || typeof (val) != "object") {
 			node = RED.nodes.node(this.id);
 		}
 		if (!node.validationErrors) {
