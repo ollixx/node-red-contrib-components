@@ -34,10 +34,9 @@
 		let node = val;
 		if (val == null || typeof (val) != "object") {
 			node = RED.nodes.node(this.id);
+			console.log("in name validation", val, node);
 		}
-		if (!node.validationErrors) {
-			node.validationErrors = [];
-		}
+		node.validationErrors = [];
 		let startNodes = findStartNodes(node.id);
 		if (startNodes.length == 0) {
 			if (!node.validationErrors.includes(MSG_NOT_CONNECTED)) {
