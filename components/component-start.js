@@ -23,15 +23,17 @@ module.exports = function (RED) {
       return;
     }
     visited.push(nodeid); // mark as vistited
-    let node = RED.nodes.getNode(nodeid);
     try {
       let node = RED.nodes.getNode(nodeid);
+      if (!node) {
+        throw "could not find node for id" + nodeid;
+      }
       if (node.wires && node.wires.length > 0) {
         node.wires.forEach((outPort) => {
           outPort.forEach((childid) => {
             let child = RED.nodes.getNode(childid);
-            if (child === undefined) {
-              throw "could not find node for id" + childid;
+            if (!child) {
+              throw "could not find child node for id" + childid;
             }
             if (child.type == type) {
               foundNodes[childid] = child;
@@ -55,8 +57,11 @@ module.exports = function (RED) {
         });
       }
     } catch (err) {
+      /*
+      console.log("-----------------------------/n  error in first nodeid", visited[0]);
+      console.log("  visited", visited);
       console.trace(err)
-      node.error(err)
+      //*/
     }
   }
 
@@ -83,6 +88,7 @@ module.exports = function (RED) {
         }
         let target = msg._comp ? msg._comp.target : undefined;
         if (target == node.id) {
+          delete msg._comp.target; // remove flag to start this node.
           node.receive(msg);
         }
       } catch (err) {
