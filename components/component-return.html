@@ -72,12 +72,16 @@
 		return node.valid;
 	}
 
-	const handlerX = function (event) {
-		if (event.node.type == "component_out") {
-			doValidate(event.node)
-		}
-	};
-	RED.hooks.add("viewRedrawNode", handlerX);
+	if (RED.hooks) {
+		const handlerX = function (event) {
+			if (event.node.type == "component_out") {
+				doValidate(event.node)
+			}
+		};
+		RED.hooks.add("viewRedrawNode", handlerX);
+	} else {
+		console.warn("component-out: could not attach doValidate to RED.hooksad");
+	}
 
 	RED.nodes.registerType('component_out', {
 		category: COMPONENTS_CATEGORY,
