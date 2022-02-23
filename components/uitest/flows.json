@@ -42,6 +42,14 @@
         "info": ""
     },
     {
+        "id": "ee91613087147e13",
+        "type": "tab",
+        "label": "nested local",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
         "id": "577a607a.ae90e",
         "type": "subflow",
         "name": "Subflow With Components inside",
@@ -158,6 +166,7 @@
         "z": "22d80fc6.ada47",
         "name": "Component",
         "api": [],
+        "usecontext": false,
         "x": 150,
         "y": 140,
         "wires": [
@@ -182,11 +191,7 @@
         "type": "component",
         "z": "22d80fc6.ada47",
         "name": "run it",
-        "targetComponent": {
-            "id": "fbb8e0c6.fd63c",
-            "name": "Component",
-            "api": []
-        },
+        "targetComponentId": "fbb8e0c6.fd63c",
         "paramSources": {},
         "statuz": "",
         "statuzType": "str",
@@ -254,33 +259,40 @@
                 "name": "name1",
                 "type": "string",
                 "required": true,
-                "global": false
+                "contextOption": false
             },
             {
                 "name": "Das ist ein längerer",
                 "type": "json",
                 "required": true,
-                "global": false
+                "contextOption": false
             },
             {
                 "name": "number",
                 "type": "number",
                 "required": true,
-                "global": false
+                "contextOption": false
             },
             {
                 "name": "bool",
                 "type": "boolean",
                 "required": true,
-                "global": false
+                "contextOption": false
             },
             {
                 "name": "sdfsdfdfsd",
                 "type": "any",
                 "required": true,
-                "global": false
+                "contextOption": false
+            },
+            {
+                "name": "name1",
+                "type": "number",
+                "required": false,
+                "contextOption": false
             }
         ],
+        "usecontext": false,
         "x": 130,
         "y": 460,
         "wires": [
@@ -2632,5 +2644,669 @@
                 "964a1a83684e53d4"
             ]
         ]
+    },
+    {
+        "id": "f2ce546ea17d1882",
+        "type": "component_in",
+        "z": "ee91613087147e13",
+        "name": "outer local",
+        "api": [
+            {
+                "name": "prop",
+                "type": "json",
+                "required": false,
+                "contextOption": true
+            }
+        ],
+        "usecontext": true,
+        "x": 140,
+        "y": 120,
+        "wires": [
+            [
+                "89f5943e95c0374b",
+                "507138fd16bc6452"
+            ]
+        ]
+    },
+    {
+        "id": "f354db0a5667cb18",
+        "type": "component_in",
+        "z": "ee91613087147e13",
+        "name": "inner global",
+        "api": [
+            {
+                "name": "prop",
+                "type": "json",
+                "required": true,
+                "contextOption": true
+            }
+        ],
+        "usecontext": false,
+        "x": 150,
+        "y": 220,
+        "wires": [
+            [
+                "dcb76c25f45cec36"
+            ]
+        ]
+    },
+    {
+        "id": "c837c633d154e2c8",
+        "type": "component_out",
+        "z": "ee91613087147e13",
+        "name": null,
+        "mode": "default",
+        "component_definitions_are_NOT_allowed_inside_subflows": false,
+        "x": 810,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "3fbc9c2dbd59270a",
+        "type": "component_out",
+        "z": "ee91613087147e13",
+        "name": null,
+        "mode": "default",
+        "component_definitions_are_NOT_allowed_inside_subflows": false,
+        "x": 750,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "a80c21101150c2e1",
+        "type": "component",
+        "z": "ee91613087147e13",
+        "name": "",
+        "targetComponent": null,
+        "targetComponentId": "f354db0a5667cb18",
+        "paramSources": {
+            "prop": {
+                "name": "prop",
+                "source": "{\"Outer\": \"string\"}",
+                "sourceType": "json"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 620,
+        "y": 120,
+        "wires": [
+            [
+                "c837c633d154e2c8",
+                "c3d1c322b787642a"
+            ]
+        ]
+    },
+    {
+        "id": "dcb76c25f45cec36",
+        "type": "change",
+        "z": "ee91613087147e13",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "inner",
+                "pt": "msg",
+                "to": "42",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "component.prop.test",
+                "pt": "msg",
+                "to": "101",
+                "tot": "num"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 340,
+        "y": 220,
+        "wires": [
+            [
+                "2f93aca52f9e1293",
+                "9915d514789c5f13"
+            ]
+        ]
+    },
+    {
+        "id": "54dd8f722972aff8",
+        "type": "component",
+        "z": "ee91613087147e13",
+        "name": "outer local",
+        "targetComponent": null,
+        "targetComponentId": "f2ce546ea17d1882",
+        "paramSources": {
+            "prop": {
+                "name": "prop",
+                "source": "{}",
+                "sourceType": "json"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 330,
+        "y": 80,
+        "wires": [
+            [
+                "a0bcc18b590caf30"
+            ]
+        ]
+    },
+    {
+        "id": "df12752eb4a43ac3",
+        "type": "inject",
+        "z": "ee91613087147e13",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 80,
+        "wires": [
+            [
+                "54dd8f722972aff8"
+            ]
+        ]
+    },
+    {
+        "id": "2f93aca52f9e1293",
+        "type": "debug",
+        "z": "ee91613087147e13",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "c3d1c322b787642a",
+        "type": "debug",
+        "z": "ee91613087147e13",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 790,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "a0bcc18b590caf30",
+        "type": "debug",
+        "z": "ee91613087147e13",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "3e5a8aef630ab4a0",
+        "type": "component_in",
+        "z": "ee91613087147e13",
+        "name": "deep local",
+        "api": [
+            {
+                "name": "propDeep",
+                "type": "string",
+                "required": false,
+                "contextOption": true
+            }
+        ],
+        "usecontext": true,
+        "x": 140,
+        "y": 340,
+        "wires": [
+            [
+                "8a6eb868102ef9c2",
+                "41a751ddac3aa8f6"
+            ]
+        ]
+    },
+    {
+        "id": "8a6eb868102ef9c2",
+        "type": "component_out",
+        "z": "ee91613087147e13",
+        "name": null,
+        "mode": "default",
+        "component_definitions_are_NOT_allowed_inside_subflows": false,
+        "x": 530,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "41a751ddac3aa8f6",
+        "type": "debug",
+        "z": "ee91613087147e13",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "9915d514789c5f13",
+        "type": "component",
+        "z": "ee91613087147e13",
+        "name": "",
+        "targetComponent": null,
+        "targetComponentId": "3e5a8aef630ab4a0",
+        "paramSources": {
+            "propDeep": {
+                "name": "propDeep",
+                "source": "Moin",
+                "sourceType": "str"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 530,
+        "y": 220,
+        "wires": [
+            [
+                "3fbc9c2dbd59270a",
+                "4adacd9dbb511168"
+            ]
+        ]
+    },
+    {
+        "id": "b5abd69cb264fa59",
+        "type": "component_in",
+        "z": "ee91613087147e13",
+        "name": "outer L",
+        "api": [
+            {
+                "name": "prop",
+                "type": "json",
+                "required": false,
+                "contextOption": true
+            }
+        ],
+        "usecontext": true,
+        "x": 130,
+        "y": 520,
+        "wires": [
+            [
+                "8168b739a1399172"
+            ]
+        ]
+    },
+    {
+        "id": "9602b8ec99944c4d",
+        "type": "component_in",
+        "z": "ee91613087147e13",
+        "name": "inner L",
+        "api": [
+            {
+                "name": "prop",
+                "type": "json",
+                "required": true,
+                "contextOption": true
+            }
+        ],
+        "usecontext": true,
+        "x": 130,
+        "y": 620,
+        "wires": [
+            [
+                "ce1a5b1d9605b045"
+            ]
+        ]
+    },
+    {
+        "id": "5f8a904cad714bb3",
+        "type": "component_out",
+        "z": "ee91613087147e13",
+        "name": null,
+        "mode": "default",
+        "component_definitions_are_NOT_allowed_inside_subflows": false,
+        "x": 530,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "9ee59a386dc85a39",
+        "type": "component_out",
+        "z": "ee91613087147e13",
+        "name": null,
+        "mode": "default",
+        "component_definitions_are_NOT_allowed_inside_subflows": false,
+        "x": 750,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "8168b739a1399172",
+        "type": "component",
+        "z": "ee91613087147e13",
+        "name": "",
+        "targetComponent": null,
+        "targetComponentId": "9602b8ec99944c4d",
+        "paramSources": {
+            "prop": {
+                "name": "prop",
+                "source": "{\"Outer\": \"string\"}",
+                "sourceType": "json"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 320,
+        "y": 520,
+        "wires": [
+            [
+                "5f8a904cad714bb3",
+                "6310e0097a836fc6"
+            ]
+        ]
+    },
+    {
+        "id": "ce1a5b1d9605b045",
+        "type": "change",
+        "z": "ee91613087147e13",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "inner",
+                "pt": "msg",
+                "to": "42",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "component.another",
+                "pt": "msg",
+                "to": "one",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 340,
+        "y": 620,
+        "wires": [
+            [
+                "b1cae1153206d3b9",
+                "b698f04edf75035c"
+            ]
+        ]
+    },
+    {
+        "id": "d2f034e2d7f22378",
+        "type": "component",
+        "z": "ee91613087147e13",
+        "name": "outer local",
+        "targetComponent": null,
+        "targetComponentId": "b5abd69cb264fa59",
+        "paramSources": {
+            "prop": {
+                "name": "prop",
+                "source": "{}",
+                "sourceType": "json"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 330,
+        "y": 480,
+        "wires": [
+            [
+                "34e3cea19fd6237b"
+            ]
+        ]
+    },
+    {
+        "id": "622199f814dfbf11",
+        "type": "inject",
+        "z": "ee91613087147e13",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 480,
+        "wires": [
+            [
+                "d2f034e2d7f22378"
+            ]
+        ]
+    },
+    {
+        "id": "b1cae1153206d3b9",
+        "type": "debug",
+        "z": "ee91613087147e13",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "6310e0097a836fc6",
+        "type": "debug",
+        "z": "ee91613087147e13",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "34e3cea19fd6237b",
+        "type": "debug",
+        "z": "ee91613087147e13",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "b698f04edf75035c",
+        "type": "component",
+        "z": "ee91613087147e13",
+        "name": "",
+        "targetComponent": null,
+        "targetComponentId": "3e5a8aef630ab4a0",
+        "paramSources": {
+            "propDeep": {
+                "name": "propDeep",
+                "source": "Moin",
+                "sourceType": "str"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 530,
+        "y": 620,
+        "wires": [
+            [
+                "9ee59a386dc85a39",
+                "b3d95b3a23d53372"
+            ]
+        ]
+    },
+    {
+        "id": "4adacd9dbb511168",
+        "type": "debug",
+        "z": "ee91613087147e13",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 730,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "89f5943e95c0374b",
+        "type": "change",
+        "z": "ee91613087147e13",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "component.prop.test",
+                "pt": "msg",
+                "to": "099",
+                "tot": "num"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 370,
+        "y": 120,
+        "wires": [
+            [
+                "a80c21101150c2e1"
+            ]
+        ]
+    },
+    {
+        "id": "507138fd16bc6452",
+        "type": "debug",
+        "z": "ee91613087147e13",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 290,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "b3d95b3a23d53372",
+        "type": "debug",
+        "z": "ee91613087147e13",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 730,
+        "y": 660,
+        "wires": []
     }
 ]

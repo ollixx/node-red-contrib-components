@@ -136,6 +136,8 @@ module.exports = function (RED) {
                 let targetComponent = RED.nodes.getNode(runNode.targetComponentId);
                 // legacy
                 if (!targetComponent) {
+                  console.log("legacy", runNode);
+                  console.log("_comp?", msg._comp);
                   targetComponent = RED.nodes.getNode(runNode.targetComponent.id);
                 }
 
@@ -162,8 +164,8 @@ module.exports = function (RED) {
               }
             });
           } catch (err) {
-            console.trace(err)
-            node.error("err in out", err)
+            console.trace(node.name || node.type, node.id, err)
+            node.error("err in out:  " + err);
           }
         }
       } catch (err) {
