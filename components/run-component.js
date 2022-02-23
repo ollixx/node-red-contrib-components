@@ -17,20 +17,32 @@ module.exports = function (RED) {
 
       // target node's id (component in) to start flow
       msg._comp.target = node.targetComponentId;
-      let targetComponent = RED.nodes.getNode(node.targetComponentId);
+      // let targetComponent = RED.nodes.getNode(node.targetComponentId);
+      let targetComponent = null;
+      // work around for RED.nodes.getNode( not working in node-red-test-helper
+      RED.nodes.eachNode((n) => { if (n.id == node.targetComponentId) { targetComponent = n } });
+      if (!targetComponent) {
+        throw new Error("could not find node for id: " + node.targetComponentId);
+      }
       let usecontext = targetComponent.usecontext;
 
       // push my ID onto the stack - the next return will come back to me
       let stackEntry = { callerId: node.id, targetId: node.targetComponentId }
-      let context;
+      let context = {};
       if (usecontext) {
-        context = {}; // context lives only until the next return node
-        if (msg._comp.stack.length > 1) {
-          // connect to parent context
-          context._parent = msg._comp.stack.slice(-2)[0].context;
-        }
-        stackEntry.context = context;
+        /* store the current context as parent.
+            This works for global and local components.
+            After this run node gets a return, it can restore this very current state in either case.
+            Even, if there should be a msg.component on the root level, i.e. not created by a component, 
+            it will be finally conserved after all components return.
+        */
+        if (msg.component) context._parent = msg.component;
+      } else {
+        // global flows store their current state as is.
+        context = msg.component;
       }
+      stackEntry.context = context;
+
       msg._comp.stack.push(stackEntry);
 
       // setup msg from parameters
@@ -122,8 +134,8 @@ module.exports = function (RED) {
         componentsEmitter.emit(EVENT_START_FLOW + "-" + node.targetComponentId, msg);
       }
     } catch (err) {
-      console.trace(err)
-      node.error(err)
+      console.trace(node.name || node.type, node.id, err);
+      node.error(node.name || node.type, node.id, err);
     }
   }
 
@@ -181,38 +193,26 @@ module.exports = function (RED) {
       }
       let stack = msg._comp.stack
       let returnNode = msg._comp.returnNode;
-      let lastEntry = stack.slice(-1)[0];
-      let usecontext = lastEntry.context ? true : false;
-      let inOnlyScenario = !returnNode && lastEntry.targetId == node.targetComponentId;
+      let myEntry = stack.slice(-1)[0];
+      let usecontext = myEntry.context ? true : false;
+      let inOnlyScenario = !returnNode && myEntry.targetId == node.targetComponentId;
       let broadcastScenario = returnNode && returnNode.broadcast;
       let defaultScenario = returnNode && returnNode.callerId == config.id
       if (inOnlyScenario || broadcastScenario || defaultScenario) {
-        // the message is for me?
+        // here, the message is for me
         stack.pop();
         delete msg._comp.returnNode;
         if (stack.length == 0) {
           // stack is empty, so we are done.
           delete msg._comp; // -> following event listeners (component nodes) won't be able to handle this event.
-          if (usecontext && !inOnlyScenario) {
-            /*
-            remove the component part, if we are in a regular flow (with a return node).
-            If we are in a in-only scenario, we keep the msg.component alive. 
-            This is because the caller is notified by the IN node immediatly after it sends the message out to the
-            component flow. Sine we don't know when that flow ends (we receive no return event), we just let the 
-            component part in the msg.
-            */
-            delete msg.component;
+          if (myEntry.context && myEntry.context._parent) {
+            msg.component = myEntry.context._parent;
+          } else {
+            delete msg.component; // we are at the root, outside of components and there was no msg.component before.
           }
         } else {
-          // more on the stack, restore last context
-          if (usecontext) {
-            let lastEntry = stack.slice(-1)[0];
-            if (lastEntry.context) {
-              msg.component = lastEntry.context;
-            } else {
-              delete msg.component; // parent has no context (probably usecontext = false!)
-            }
-          }
+          let parentEntry = stack.slice(-1)[0];
+          msg.component = parentEntry.context;
         }
 
         // find outport
@@ -235,13 +235,6 @@ module.exports = function (RED) {
       }
     }
     componentsEmitter.on(EVENT_RETURN_FLOW + "-" + node.id, returnFromFlowHandler);
-
-    /*
-    if (isInvalidInSubflow(RED, node) == true) {
-      node.error(RED._("components.message.componentInSubflow"))
-      return
-    }
-    */
 
     // Clean up event handler on close
     this.on("close", function () {
