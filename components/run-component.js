@@ -5,7 +5,21 @@ module.exports = function (RED) {
   const EVENT_START_FLOW = "comp-start-flow";
   const EVENT_RETURN_FLOW = "comp-flow-return";
 
-  function sendStartFlow(msg, node) {
+  function evaluateNodeProperty(value, type, node, msg)
+  {
+    return new Promise((resolve, reject) => {
+        RED.util.evaluateNodeProperty(value, type, node, msg, (err, res) => {
+            if (err) {
+              reject(err);
+            } else {
+              //console.log("Res: " + res);
+              resolve(res);
+            }
+        });
+    });
+  }
+
+  async function sendStartFlow(msg, node) {
     try {
       // create / update state for new execution
       if (typeof msg._comp == "undefined") {
@@ -67,8 +81,9 @@ module.exports = function (RED) {
         // an empty, optional parameter is evaluated only, if the source type is "string".
         // In that case, the parameter is set(!). It is not put into the message in all other cases.
         if (paramSource.source && paramSource.source.length > 0 || paramSource.sourceType == "str") {
-          val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
+          val = await evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
         }
+        //console.log("Val: " + val);
         if (val == null || val == undefined) {
           if (paramDef.required) {
             validationErrors[paramName] = RED._("components.message.missingProperty", { parameter: paramName });
