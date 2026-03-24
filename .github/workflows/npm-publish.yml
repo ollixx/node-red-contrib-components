@@ -16,8 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+      RELEASE_BRANCH: master
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -32,6 +36,13 @@ jobs:
               exit 1
               ;;
           esac
+      - name: Require tag commit on release branch
+        run: |
+          git fetch origin "$RELEASE_BRANCH" --depth=1
+          if ! git merge-base --is-ancestor HEAD "origin/$RELEASE_BRANCH"; then
+            echo "Release tag $RELEASE_TAG must point to a commit that is contained in origin/$RELEASE_BRANCH." >&2
+            exit 1
+          fi
       - run: npm ci
       - run: node scripts/validate-release-version.js
       - run: npm test
@@ -49,8 +60,12 @@ jobs:
       id-token: write
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+      RELEASE_BRANCH: master
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -67,6 +82,13 @@ jobs:
               exit 1
               ;;
           esac
+      - name: Require tag commit on release branch
+        run: |
+          git fetch origin "$RELEASE_BRANCH" --depth=1
+          if ! git merge-base --is-ancestor HEAD "origin/$RELEASE_BRANCH"; then
+            echo "Release tag $RELEASE_TAG must point to a commit that is contained in origin/$RELEASE_BRANCH." >&2
+            exit 1
+          fi
       - run: npm ci
       - run: node scripts/validate-release-version.js
       - run: npm run pack:check
@@ -87,5 +109,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
-          generate_release_notes: true
           prerelease: true
+          body: |
+            Release candidate for ${{ env.RELEASE_TAG }}.
+
+            Published from the tagged commit on master to the npm `next` dist-tag.
+
+            Install for validation with:
+            npm install node-red-contrib-components@next

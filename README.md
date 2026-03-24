@@ -214,6 +214,7 @@ git push origin develop --follow-tags
 The GitHub Actions setup enforces that:
 
 - only `vX.Y.Z` and `vX.Y.Z-rc.N` tags are accepted
+- release tags must point to a commit that is already contained in `master`
 - both stable and RC publishes run the same validation gates before publishing
 - RC publishes go to the npm `next` dist-tag and are marked as GitHub prereleases
 - stable publishes go to the default npm `latest` dist-tag
