@@ -70,7 +70,7 @@ module.exports = function (RED) {
       }
       if (node._returnNodeIds.length == 0) {
         // send event to caller, so he can finish his "running" state
-        componentsEmitter.emit(EVENT_RETURN_FLOW + "-" + lastEntry.callerId, msg);
+        componentsEmitter.emit(EVENT_RETURN_FLOW + "-" + lastEntry.callerId, RED.util.cloneMessage(msg));
       }
     });
 
