@@ -203,11 +203,11 @@ Typical maintainer flow:
 
 ```bash
 # release candidate
-npm version 0.3.5-rc.1
+npm version 0.4.0-rc.1
 git push origin develop --follow-tags
 
 # final release after RC validation
-npm version 0.3.5
+npm version 0.4.0
 git push origin develop --follow-tags
 ```
 
