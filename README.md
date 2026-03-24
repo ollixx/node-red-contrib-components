@@ -194,7 +194,7 @@ What they cover:
 
 ## Release workflow
 
-The repository distinguishes between stable releases and release candidates.
+The repository distinguishes between stable releases and release candidates, but both are published through the same GitHub Actions workflow so npm Trusted Publishing can be bound to a single workflow file.
 
 - Stable release tags use the format `vX.Y.Z` and publish to the default npm `latest` dist-tag.
 - Release candidate tags use the format `vX.Y.Z-rc.N` and publish to the npm `next` dist-tag.
@@ -213,10 +213,17 @@ git push origin develop --follow-tags
 
 The GitHub Actions setup enforces that:
 
-- stable publish runs reject prerelease tags
-- RC publish runs only accept `-rc.N` tags
-- both paths run the same validation gates before publishing
-- RC publishes are marked as GitHub prereleases
+- only `vX.Y.Z` and `vX.Y.Z-rc.N` tags are accepted
+- both stable and RC publishes run the same validation gates before publishing
+- RC publishes go to the npm `next` dist-tag and are marked as GitHub prereleases
+- stable publishes go to the default npm `latest` dist-tag
+
+Trusted Publishing setup on npm:
+
+- In npm package settings for `node-red-contrib-components`, configure one Trusted Publisher for GitHub Actions.
+- Use GitHub owner `ollixx`, repository `node-red-contrib-components`, and workflow filename `npm-publish.yml`.
+- Keep `id-token: write` enabled in the workflow.
+- No npm publish token is required for `npm publish` after Trusted Publishing is configured.
 
 ## Additional technical notes
 

@@ -13,21 +13,22 @@ on:
 
 jobs:
   validate:
-    if: ${{ !(github.event_name == 'workflow_dispatch' && contains(inputs.release_tag, '-')) && !(github.event_name != 'workflow_dispatch' && contains(github.ref_name, '-')) }}
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: npm
-      - name: Reject prerelease tags in stable workflow
+      - name: Require supported release tag format
         run: |
           case "$RELEASE_TAG" in
-            *-*)
-              echo "Stable publish workflow does not accept prerelease tags: $RELEASE_TAG" >&2
+            v*.*.*-rc.*) ;;
+            v*.*.*) ;;
+            *)
+              echo "Publish workflow expects a stable tag like v0.4.0 or an RC tag like v0.4.0-rc.1. Received: $RELEASE_TAG" >&2
               exit 1
               ;;
           esac
@@ -41,26 +42,27 @@ jobs:
       - run: npm run uitest
 
   publish:
-    if: ${{ !(github.event_name == 'workflow_dispatch' && contains(inputs.release_tag, '-')) && !(github.event_name != 'workflow_dispatch' && contains(github.ref_name, '-')) }}
     runs-on: ubuntu-latest
     needs: validate
     permissions:
-      contents: read
+      contents: write
       id-token: write
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
           cache: npm
-      - name: Reject prerelease tags in stable workflow
+      - name: Require supported release tag format
         run: |
           case "$RELEASE_TAG" in
-            *-*)
-              echo "Stable publish workflow does not accept prerelease tags: $RELEASE_TAG" >&2
+            v*.*.*-rc.*) ;;
+            v*.*.*) ;;
+            *)
+              echo "Publish workflow expects a stable tag like v0.4.0 or an RC tag like v0.4.0-rc.1. Received: $RELEASE_TAG" >&2
               exit 1
               ;;
           esac
@@ -68,6 +70,19 @@ jobs:
       - run: node scripts/validate-release-version.js
       - run: npm run pack:check
       - name: Publish package
-        run: npm publish --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: |
+          case "$RELEASE_TAG" in
+            v*.*.*-rc.*)
+              npm publish --tag next
+              ;;
+            v*.*.*)
+              npm publish
+              ;;
+          esac
+      - name: Create GitHub prerelease
+        if: ${{ contains(env.RELEASE_TAG, '-rc.') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          generate_release_notes: true
+          prerelease: true
