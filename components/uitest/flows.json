@@ -3437,5 +3437,31 @@
         "wires": [
             []
         ]
+    },
+    {
+        "id": "pw_local_flags",
+        "type": "component_in",
+        "z": "pw_tab",
+        "name": "local flags start",
+        "api": [
+            {
+                "name": "firstParam",
+                "type": "string",
+                "required": true,
+                "contextOption": false
+            },
+            {
+                "name": "secondParam",
+                "type": "number",
+                "required": true,
+                "contextOption": false
+            }
+        ],
+        "usecontext": true,
+        "x": 180,
+        "y": 420,
+        "wires": [
+            []
+        ]
     }
 ]
