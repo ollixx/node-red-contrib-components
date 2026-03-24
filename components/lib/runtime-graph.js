@@ -130,6 +130,10 @@ function getCallerHierarchy(RED, targetId, visited = new Set()) {
                     return;
                 }
 
+                if (result[child.id]) {
+                    return;
+                }
+
                 if (child.type === "link in") {
                     const linkHierarchy = {
                         node: child,
