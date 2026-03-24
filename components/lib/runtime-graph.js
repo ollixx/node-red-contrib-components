@@ -23,6 +23,51 @@ function getNodeById(RED, nodeId) {
     return null;
 }
 
+function getFlowDefinition(RED) {
+    if (!RED.nodes || typeof RED.nodes.getFlows !== "function") {
+        return [];
+    }
+
+    const activeConfig = RED.nodes.getFlows();
+    if (activeConfig && Array.isArray(activeConfig.flows)) {
+        return activeConfig.flows;
+    }
+    return Array.isArray(activeConfig) ? activeConfig : [];
+}
+
+function getNodeConfigById(RED, nodeId) {
+    if (!nodeId) {
+        return null;
+    }
+
+    const flowDefinition = getFlowDefinition(RED);
+    for (const nodeConfig of flowDefinition) {
+        if (nodeConfig && nodeConfig.id === nodeId) {
+            return nodeConfig;
+        }
+    }
+
+    return null;
+}
+
+function getNodeWires(RED, node) {
+    if (node && Array.isArray(node.wires)) {
+        return node.wires;
+    }
+
+    const nodeConfig = getNodeConfigById(RED, node && node.id);
+    return nodeConfig && Array.isArray(nodeConfig.wires) ? nodeConfig.wires : [];
+}
+
+function getLinkTargets(RED, node) {
+    if (node && Array.isArray(node.links)) {
+        return node.links;
+    }
+
+    const nodeConfig = getNodeConfigById(RED, node && node.id);
+    return nodeConfig && Array.isArray(nodeConfig.links) ? nodeConfig.links : [];
+}
+
 function isInvalidInSubflow(RED, node) {
     const owner = getNodeById(RED, node && node.z);
     return !!(owner && typeof owner.type === "string" && owner.type.startsWith("subflow"));
@@ -39,11 +84,12 @@ function findConnectedNodesByType(RED, nodeId, type = "component_out", foundNode
         throw new Error("could not find node for id " + nodeId);
     }
 
-    if (!Array.isArray(node.wires) || node.wires.length === 0) {
+    const wires = getNodeWires(RED, node);
+    if (wires.length === 0) {
         return foundNodes;
     }
 
-    node.wires.forEach((outPort) => {
+    wires.forEach((outPort) => {
         outPort.forEach((childId) => {
             const child = getNodeById(RED, childId);
             if (!child) {
@@ -53,15 +99,9 @@ function findConnectedNodesByType(RED, nodeId, type = "component_out", foundNode
             if (child.type === type) {
                 foundNodes[childId] = child;
             } else if (child.type === "link out") {
-                if (Array.isArray(child.links)) {
-                    child.links.forEach((linkId) => {
-                        findConnectedNodesByType(RED, linkId, type, foundNodes, visited);
-                    });
-                } else if (Array.isArray(child.wires) && Array.isArray(child.wires[0])) {
-                    child.wires[0].forEach((linkId) => {
-                        findConnectedNodesByType(RED, linkId, type, foundNodes, visited);
-                    });
-                }
+                getLinkTargets(RED, child).forEach((linkId) => {
+                    findConnectedNodesByType(RED, linkId, type, foundNodes, visited);
+                });
             }
 
             findConnectedNodesByType(RED, childId, type, foundNodes, visited);
@@ -79,11 +119,12 @@ function getCallerHierarchy(RED, targetId, visited = new Set()) {
 
     visited.add(targetId);
     RED.nodes.eachNode((child) => {
-        if (!Array.isArray(child.wires)) {
+        const wires = getNodeWires(RED, child);
+        if (wires.length === 0) {
             return;
         }
 
-        child.wires.forEach((port) => {
+        wires.forEach((port) => {
             port.forEach((nodeId) => {
                 if (nodeId !== targetId) {
                     return;
@@ -94,7 +135,7 @@ function getCallerHierarchy(RED, targetId, visited = new Set()) {
                         node: child,
                         callers: {}
                     };
-                    (child.links || []).forEach((linkOutId) => {
+                    getLinkTargets(RED, child).forEach((linkOutId) => {
                         const linkOutNode = getNodeById(RED, linkOutId);
                         if (linkOutNode) {
                             linkHierarchy.callers[linkOutId] = {

@@ -325,7 +325,7 @@
 					// find target component
 					let targetComponentId = config.targetComponentId;
 					// legacy since 0.2.4:
-					if (config.targetComponent) {
+					if (config.targetComponent && config.targetComponent.id) {
 						targetComponentId = config.targetComponent.id;
 						config.targetComponentId = targetComponentId;
 						delete config.targetComponent;

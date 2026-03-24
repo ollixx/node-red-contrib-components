@@ -19,12 +19,24 @@ function normalizeError(err, fallbackMessage) {
   return new Error(fallbackMessage || String(err));
 }
 
+function evaluateNodePropertyAsync(RED, value, valueType, node, msg) {
+  return new Promise((resolve, reject) => {
+    RED.util.evaluateNodeProperty(value, valueType, node, msg, (err, result) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(result);
+    });
+  });
+}
+
 module.exports = function (RED) {
 
   const EVENT_START_FLOW = "comp-start-flow";
   const EVENT_RETURN_FLOW = "comp-flow-return";
 
-  function sendStartFlow(msg, node) {
+  async function sendStartFlow(msg, node) {
     try {
       // target node's id (component in) to start flow
       setTarget(msg, node.targetComponentId);
@@ -73,7 +85,7 @@ module.exports = function (RED) {
         // an empty, optional parameter is evaluated only, if the source type is "string".
         // In that case, the parameter is set(!). It is not put into the message in all other cases.
         if (paramSource.source && paramSource.source.length > 0 || paramSource.sourceType == "str") {
-          val = RED.util.evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
+          val = await evaluateNodePropertyAsync(RED, paramSource.source, paramSource.sourceType, node, msg);
         }
         if (val == null || val == undefined) {
           if (paramDef.required) {
@@ -156,7 +168,7 @@ module.exports = function (RED) {
     RED.nodes.createNode(this, config);
 
     var node = this;
-    node.targetComponentId = config.targetComponentId || config.targetComponent.id;
+    node.targetComponentId = config.targetComponentId || (config.targetComponent && config.targetComponent.id);
     node.paramSources = config.paramSources;
     node.statuz = config.statuz;
     node.statuzType = config.statuzType;
