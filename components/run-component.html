@@ -2,7 +2,234 @@
 			******* RUN COMPONENT *************
 -->
 <script type="text/javascript">
-	RED.nodes.registerType('component', {
+	(() => {
+		const COMPONENTS_COLOR = "#1dc91d";
+		const COMPONENTS_CATEGORY = "advanced";
+
+		const getNode = function (nodeid) {
+			const originalNode = RED.nodes.node(nodeid);
+			if (!originalNode) {
+				return null;
+			}
+			let node = { ...originalNode };
+			let wires = [];
+			RED.nodes.eachLink((link) => {
+				if (link.source.id == nodeid) {
+					wires[link.sourcePort] = wires[link.sourcePort] || [];
+					wires[link.sourcePort].push(link.target.id);
+				}
+			});
+			node.wires = wires;
+			return node;
+		};
+
+		const findReturnNodes = function (nodeid, foundNodes, type = "component_out", visited = []) {
+			if (visited.includes(nodeid)) {
+				return;
+			}
+			visited.push(nodeid);
+			let node = getNode(nodeid);
+			if (!node || !node.wires || node.wires.length === 0) {
+				return;
+			}
+			node.wires.forEach((outPort) => {
+				outPort.forEach((childid) => {
+					let child = getNode(childid);
+					if (!child) {
+						return;
+					}
+					if (child.type == type) {
+						foundNodes[childid] = child;
+					} else if (child.type == "link out") {
+						if (child.links) {
+							child.links.forEach((linkid) => {
+								findReturnNodes(linkid, foundNodes, type, visited)
+							})
+						} else if (child.wires) {
+							child.wires[0].forEach((linkid) => {
+								findReturnNodes(linkid, foundNodes, type, visited)
+							})
+						}
+					}
+					findReturnNodes(childid, foundNodes, type, visited)
+				})
+			});
+		};
+
+		const resolveTargetComponentId = function (config) {
+			return config.targetComponentId || (config.targetComponent && config.targetComponent.id) || null;
+		};
+
+		const resolveTargetComponent = function (config) {
+			const targetComponentId = resolveTargetComponentId(config);
+			return targetComponentId ? RED.nodes.node(targetComponentId) : null;
+		};
+
+		const validateComponentConfig = function (config, paramSources) {
+			const targetComponentId = resolveTargetComponentId(config);
+			if (!targetComponentId) {
+				return RED._("components.message.componentNotConnected");
+			}
+
+			const targetComponent = RED.nodes.node(targetComponentId);
+			if (!targetComponent) {
+				return RED._("components.message.invalidTargetComponent");
+			}
+
+			const currentParamSources = paramSources || config.paramSources || {};
+			const apiByName = {};
+			for (let p in targetComponent.api) {
+				let paramDef = targetComponent.api[p];
+				apiByName[paramDef.name] = paramDef;
+				if (!currentParamSources[paramDef.name]) {
+					return RED._("components.message.missingParamSourceConfig", { parameter: paramDef.name });
+				}
+			}
+
+			for (let p in currentParamSources) {
+				let param = currentParamSources[p];
+				let paramDef = apiByName[param.name];
+				if (!paramDef) {
+					continue;
+				}
+				let v = param.source;
+				switch (param.sourceType) {
+					case "str": {
+						if (typeof v == "object") {
+							return RED._("components.message.invalidStringSource", { parameter: param.name });
+						}
+						break;
+					}
+					case "bool": {
+						if (v === null || v === undefined || v.length == 0 || (v !== 'true' && v !== 'false')) {
+							return RED._("components.message.invalidBooleanSource", { parameter: param.name });
+						}
+						break;
+					}
+					case "num": {
+						if (v === null || v === undefined || v.length == 0 || isNaN(parseFloat(v))) {
+							return RED._("components.message.invalidNumberSource", { parameter: param.name });
+						}
+						break;
+					}
+					case "msg":
+					case "flow":
+					case "global": {
+						if (v === null || v === undefined || v.length == 0) {
+							return RED._("components.message.invalidReferenceSource", { parameter: param.name });
+						}
+						break;
+					}
+					case "jsonata": {
+						if (v === null || v === undefined || v.length == 0) {
+							return RED._("components.message.invalidJsonataSource", { parameter: param.name });
+						}
+						try {
+							jsonata(v)
+						} catch (err) {
+							return RED._("components.message.invalidJsonataSource", { parameter: param.name });
+						}
+						break;
+					}
+					case "json": {
+						if (v === null || v === undefined || v.length == 0) {
+							return RED._("components.message.invalidJsonSource", { parameter: param.name });
+						}
+						try {
+							JSON.parse(v)
+						} catch (err) {
+							return RED._("components.message.invalidJsonSource", { parameter: param.name });
+						}
+						break;
+					}
+					default:
+						break;
+				}
+			}
+
+			return null;
+		};
+
+		const applyComponentValidationResult = function (config, message) {
+			config._validationMessage = message || "";
+			return !message;
+		};
+
+		const collectParamSourcesFromEditor = function (config) {
+			if (!$("#node-input-parameter-container").length) {
+				return config.paramSources || {};
+			}
+			const collected = {};
+			$("#node-input-parameter-container").editableList('items').each(function () {
+				let item = $(this);
+				let name = item.find(".node-input-property-name").text();
+				let input = item.find(".node-input-property-source input");
+				collected[name] = {
+					name: name,
+					source: input.typedInput('value'),
+					sourceType: input.typedInput('type')
+				};
+			});
+			return collected;
+		};
+
+		const updateComponentValidationAlert = function (config) {
+			const selectedComponentId = $("#node-input-selected").val();
+			const draft = Object.assign({}, config, {
+				targetComponentId: selectedComponentId && selectedComponentId !== "choose" ? selectedComponentId : resolveTargetComponentId(config),
+				paramSources: collectParamSourcesFromEditor(config)
+			});
+			const message = validateComponentConfig(draft, draft.paramSources);
+			const alert = $("#component-validation-alert");
+			const text = $("#component-validation-alert-text");
+			if (!alert.length) {
+				return;
+			}
+			if (message) {
+				text.text(message);
+				alert.show();
+			} else {
+				text.empty();
+				alert.hide();
+			}
+		};
+
+		const updateOutputAlert = function (config, targetComponentId) {
+			const alert = $("#output-alert");
+			if (!targetComponentId) {
+				alert.hide();
+				return;
+			}
+			let oldLabels = [...(config.outLabels || [])]
+			let newLabels = []
+
+			let foundReturnNodes = {}
+			findReturnNodes(targetComponentId, foundReturnNodes);
+			for (let key in foundReturnNodes) {
+				let retNode = foundReturnNodes[key]
+				if (retNode.mode && retNode.mode == "separate") {
+					newLabels.push(retNode.name || key)
+				} else if (newLabels.length == 0 || newLabels[0] != "default") {
+					newLabels.splice(0, 0, "default")
+				}
+			}
+			let diff = newLabels.length != oldLabels.length;
+			if (!diff) {
+				for (let i in newLabels) {
+					if (newLabels[i] != oldLabels[i]) {
+						diff = true;
+						break;
+					}
+				}
+			}
+			if (diff) {
+				alert.show()
+			} else {
+				alert.hide()
+			}
+		};
+
+		RED.nodes.registerType('component', {
 		category: COMPONENTS_CATEGORY,
 		color: COMPONENTS_COLOR,
 		label: function () {
@@ -27,117 +254,12 @@
 			},
 			targetComponentId: {
 				value: null, validate: function (val) {
-					if (val) {
-						// check if target exists (might be stale)
-						if (RED.nodes.node(val)) return true
-					}
-					if (this.targetComponent && this.targetComponent.id) {
-						// check if target exists (might be stale)
-						if (RED.nodes.node(this.targetComponent.id)) return true
-					}
-					return false
+					return applyComponentValidationResult(this, validateComponentConfig(Object.assign({}, this, { targetComponentId: val }), this.paramSources));
 				}
 			},
 			paramSources: {
 				value: {}, validate: function (val) {
-					let targetComponentId = this.targetComponentId;
-					// check legacy
-					if (!targetComponentId && this.targetComponent && this.targetComponent.id) {
-						targetComponentId = this.targetComponent.id;
-					}
-					let targetComponent = RED.nodes.node(targetComponentId);
-					if (!targetComponent) {
-						// ??? could only happen, if START node was deleted and this property is validated before this.targetComponentId
-						// in that case we just ignore it and wait for validation of this.targetComponentId
-						return true; // basically means we don't further validate.
-					}
-					// first check, if we are missing a parameter from the api
-					let apiByName = {};
-					for (let p in targetComponent.api) {
-						let paramDef = targetComponent.api[p];
-						apiByName[paramDef.name] = paramDef;
-						let found = false;
-						for (let p in val) {
-							let param = val[p];
-							if (param.name == paramDef.name) {
-								found = true;
-							}
-						}
-						if (!found) {
-							console.log("validate error", this.id, "did not find a paramSource for api param", paramDef.name);
-							return false;
-						}
-					}
-					for (let p in val) {
-						let param = val[p]
-						let paramDef = apiByName[param.name];
-						if (!paramDef) {
-							// got no def, so this source is stale.
-							continue; // we ignore that, as the paramSource will vanish on Save.
-						}
-						let v = param.source
-						switch (param.sourceType) {
-							case "str": {
-								if (typeof v == "object") {
-									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting 'string', but got 'object'");
-									return false
-								}
-								break;
-							}
-							case "bool": {
-								if (v === null || v === undefined || v.length == 0 || (v !== 'true' && v !== 'false')) {
-									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting valid 'boolean', but got", v);
-									return false
-								}
-								break;
-							}
-							case "num": {
-								if (v === null || v === undefined || v.length == 0 || isNaN(parseFloat(v))) {
-									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting valid 'number', but got", v);
-									return false
-								}
-								break;
-							}
-							case "msg":
-							case "flow":
-							case "global": {
-								if (v === null || v === undefined || v.length == 0) {
-									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting input, but got", v);
-									return false
-								}
-								break;
-							}
-							case "jsonata": {
-								if (v === null || v === undefined || v.length == 0) {
-									return false
-								}
-								try {
-									jsonata(v)
-								} catch (err) {
-									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting valid jsonata expression, but parsing failed", v, err);
-									return false
-								}
-								break;
-							}
-							case "json": {
-								if (v === null || v === undefined || v.length == 0) {
-									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting json expression, but got", v);
-									return false
-								}
-								try {
-									JSON.parse(v)
-								} catch (err) {
-									console.log("validate error", this.id, "param", "'" + param.name + "'", "expecting valid json expression, but parsing failed", v, err);
-									return false
-								}
-								break;
-							}
-							default: {
-								// no validation
-							}
-						}
-					}
-					return true
+					return applyComponentValidationResult(this, validateComponentConfig(this, val));
 				}
 			},
 			statuz: { value: "", validate: RED.validators.typedInput("statuzType") },
@@ -168,6 +290,10 @@
 
 				let updateParameters = function (targetComponentNode, paramSources) {
 					$("#node-input-parameter-container").editableList('empty');
+					if (!targetComponentNode) {
+						updateComponentValidationAlert(config);
+						return;
+					}
 					let api = targetComponentNode.api;
 					for (var i = 0; i < api.length; i++) {
 						var param = $.extend({}, api[i]);
@@ -180,6 +306,7 @@
 						}
 						$("#node-input-parameter-container").editableList('addItem', param);
 					}
+					updateComponentValidationAlert(config);
 				}
 
 				let setLinkToDefinition = function (config, targetComponentId) {
@@ -254,6 +381,8 @@
 						// set the API list
 						updateParameters(componentNodes[selectedNodeId], config.paramSources);
 					}
+					updateComponentValidationAlert(config);
+					updateOutputAlert(config, selectedNodeId !== "choose" ? selectedNodeId : null);
 				});
 
 				// status
@@ -331,46 +460,14 @@
 					resetWidth(container);
 				});
 				this.observer.observe(document.querySelector('#node-input-parameter-container'))
+				container.on('change keyup', '.node-input-property-source input', function () {
+					updateComponentValidationAlert(config);
+				});
 
 				$("#node-input-selected").change();
-
-				// Handle output ports depending on number of componet flow's return nodes.
-				if (targetComponentId) {
-					let node = this
-					let oldLabels = [...node.outLabels]
-					let newLabels = []
-
-					let foundReturnNodes = {}
-					findReturnNodes(targetComponentId, foundReturnNodes);
-					for (let key in foundReturnNodes) {
-						let retNode = foundReturnNodes[key]
-						if (retNode.mode && retNode.mode == "separate") {
-							newLabels.push(retNode.name || key)
-						} else {
-							if (newLabels.length == 0 || newLabels[0] != "default") {
-								newLabels.splice(0, 0, "default")
-							}
-						}
-					}
-					let diff = newLabels.length != oldLabels.length;
-					// check labels for changes
-					if (!diff) {
-						for (let i in newLabels) {
-							if (newLabels[i] != oldLabels[i]) {
-								diff = true;
-								break;
-							}
-						}
-					}
-					if (diff) {
-						$("#output-alert").show()
-					} else {
-						$("#output-alert").hide()
-					}
-				}
+				updateComponentValidationAlert(config);
+				updateOutputAlert(config, targetComponentId);
 			} catch (err) {
-				console.trace(err)
-				console.error(err.stack);
 				throw err;
 			}
 
@@ -388,15 +485,10 @@
 
 				// get target node 
 				node.targetComponentId = selectedComponentId;
-				let targetComponent;
-				RED.nodes.eachNode(function (n) {
-					if (n.id == selectedComponentId) {
-						targetComponent = n;
-					}
-				});
+				let targetComponent = resolveTargetComponent({ targetComponentId: selectedComponentId });
 
 				if (targetComponent == null) {
-					throw "could not find target node for ID '" + selectedComponentId + "'";
+					throw new Error("could not find target node for ID '" + selectedComponentId + "'");
 				}
 
 				// save parameters from list
@@ -450,7 +542,8 @@
 			this.editor.destroy();
 			delete this.editor;
 		}
-	});
+		});
+	})();
 </script>
 <script type="text/x-red" data-template-name="component">
     <div class="form-row">
@@ -466,7 +559,11 @@
         <input id="node-input-statuz" type="text">
 		<input id="node-input-statuz-type" type="hidden">
 	</div>
-	<div class="form-row" style="color: orange" id="output-alert">
+	<div class="form-row" style="color: orange; display:none" id="component-validation-alert">
+		<label><i class="fa fa-exclamation-triangle"></i> <span data-i18n="components.label.validation"></span></label>
+		<span id="component-validation-alert-text"></span>
+	</div>
+	<div class="form-row" style="color: orange; display:none" id="output-alert">
 		<label><i class="fa fa-exclamation-triangle"></i> <span data-i18n="components.label.outportChange"></span></label>
         <span data-i18n="components.message.outportChange"></span>
 	</div>

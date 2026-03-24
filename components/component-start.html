@@ -3,38 +3,45 @@
 -->
 
 <script type="text/javascript">
-	const COMPONENTS_COLOR = "#1dc91d";
-	const COMPONENTS_CATEGORY = "advanced";
+	(() => {
+		const COMPONENTS_COLOR = "#1dc91d";
+		const COMPONENTS_CATEGORY = "advanced";
 
-	const getNode = function (nodeid) {
-		let node = { ...RED.nodes.node(nodeid) };
-		let wires = [];
-		RED.nodes.eachLink((link) => {
-			if (link.source.id == nodeid) {
-				wires[link.sourcePort] = wires[link.sourcePort] || [];
-				wires[link.sourcePort].push(link.target.id);
+		const getNode = function (nodeid) {
+			const originalNode = RED.nodes.node(nodeid);
+			if (!originalNode) {
+				return null;
 			}
-		});
-		node.wires = wires;
-		return node;
-	}
-
-	// find all RETURN component nodes, that are connected to me.
-	// traverses all connected nodes, including link nodes
-	const findReturnNodes = function (nodeid, foundNodes, type = "component_out", visited = []) {
-		if (visited.includes(nodeid)) {
-			return;
+			let node = { ...originalNode };
+			let wires = [];
+			RED.nodes.eachLink((link) => {
+				if (link.source.id == nodeid) {
+					wires[link.sourcePort] = wires[link.sourcePort] || [];
+					wires[link.sourcePort].push(link.target.id);
+				}
+			});
+			node.wires = wires;
+			return node;
 		}
-		visited.push(nodeid);
-		let node = getNode(nodeid);
-		if (node.wires && node.wires.length > 0) {
+
+		const findReturnNodes = function (nodeid, foundNodes, type = "component_out", visited = []) {
+			if (visited.includes(nodeid)) {
+				return;
+			}
+			visited.push(nodeid);
+			let node = getNode(nodeid);
+			if (!node || !node.wires || node.wires.length === 0) {
+				return;
+			}
 			node.wires.forEach((outPort) => {
 				outPort.forEach((childid) => {
 					let child = getNode(childid);
+					if (!child) {
+						return;
+					}
 					if (child.type == type) {
 						foundNodes[childid] = child;
 					} else if (child.type == "link out") {
-						// look for more nodes at the other side of the link
 						if (child.links) {
 							child.links.forEach((linkid) => {
 								findReturnNodes(linkid, foundNodes, type, visited)
@@ -45,24 +52,23 @@
 							})
 						}
 					}
-					// look for connected nodes
 					findReturnNodes(childid, foundNodes, type, visited)
 				})
 			});
 		}
-	}
-	const findInstances = function (nodeid, foundNodes) {
-		function getInstanceById(nodeid) {
-			return RED.nodes.originalFlow().filter((node) => {
-				return node.type == "component" && node.targetComponent && node.targetComponent.id == nodeid;
-			});
-		}
-		getInstanceById(nodeid).forEach((inst) => {
-			foundNodes[inst.id] = inst
-		})
-	}
 
-	RED.nodes.registerType('component_in', {
+		const findInstances = function (nodeid, foundNodes) {
+			function getInstanceById(instanceNodeId) {
+				return RED.nodes.originalFlow().filter((node) => {
+					return node.type == "component" && node.targetComponent && node.targetComponent.id == instanceNodeId;
+				});
+			}
+			getInstanceById(nodeid).forEach((inst) => {
+				foundNodes[inst.id] = inst
+			})
+		}
+
+		RED.nodes.registerType('component_in', {
 		category: COMPONENTS_CATEGORY,
 		color: COMPONENTS_COLOR,
 		defaults: {
@@ -184,7 +190,8 @@
 				node.api.push({ name, type, required, contextOption });
 			});
 		}
-	});
+		});
+	})();
 </script>
 <script type="text/x-red" data-template-name="component_in">
     <div class="form-row invalid" style="color: orange">
