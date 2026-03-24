@@ -105,8 +105,11 @@ dist
 
 .DS_Store
 
+!package-lock.json
+
 components/uitest/*.png
 components/uitest/.*
+components/uitest/package-lock.json
 components/uitest/node_modules/
 components/uitest/playwright-report/
 components/uitest/test-results/
