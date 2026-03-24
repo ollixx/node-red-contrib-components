@@ -233,3 +233,7 @@ For maintainers who need the runtime protocol details, see [components/COMP_PROT
 ## Project status
 
 The current focus is on a stable runtime, explicit compatibility targets, safer publishing, and a small but meaningful editor E2E suite. Feature ideas beyond that are better tracked as issues than kept inline in the package landing page.
+
+## Links
+
+[![Hypercommit](https://img.shields.io/badge/Hypercommit-DB2475)](https://hypercommit.com/node-red-contrib-components)
