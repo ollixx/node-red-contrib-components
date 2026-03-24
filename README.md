@@ -58,6 +58,14 @@ node-red-contrib-components can be install using the node-red editor's pallete o
 npm install node-red-contrib-components
 ```
 
+### Compatibility
+The current support contract for development, CI and releases is:
+
+* Node.js 18, 20 and 22
+* Node-RED 4.x for development and editor/browser validation
+
+The automated CI matrix validates the runtime test suite on Node.js 18, 20 and 22. Browser-level editor workflows are covered separately with headless Playwright tests.
+
 ### Examples
 There are some examples available now in the node-red specific way. Just select import... in the menu and find ```node-red-contrib-components``` in the exmaples sections. Beside some basic flows, that show how to use components, there are some more advanced scenarios to show speecific features like broadcast, in-only etc. Check it out.
 

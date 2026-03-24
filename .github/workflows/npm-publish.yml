@@ -27,6 +27,9 @@ jobs:
       - run: npm test
       - run: npm run test:coverage
       - run: npm run pack:check
+      - run: npm --prefix ./components/uitest/ install
+      - run: npx --prefix ./components/uitest playwright install --with-deps chromium
+      - run: npm run uitest
 
   publish:
     runs-on: ubuntu-latest
