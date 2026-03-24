@@ -126,3 +126,15 @@ test("warns when return node mode changes invalidate runner output labels", asyn
 
     await closeNodeEditor(page, false);
 });
+
+test("keeps explicit local flags unchecked when reopening a component start", async ({ page }) => {
+    await openEditor(page);
+    await openNodeEditor(page, "pw_local_flags");
+
+    const localCheckboxes = page.locator(".node-input-property-contextoption");
+    await expect(localCheckboxes).toHaveCount(2);
+    await expect(localCheckboxes.nth(0)).not.toBeChecked();
+    await expect(localCheckboxes.nth(1)).not.toBeChecked();
+
+    await closeNodeEditor(page, false);
+});

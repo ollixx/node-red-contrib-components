@@ -156,7 +156,7 @@
 								propertyName.val(property.name);
 								selectField.val(property.type);
 								required.prop("checked", property.required || false);
-								context.prop("checked", property.contextOption || usecontext);
+								context.prop("checked", typeof property.contextOption === "undefined" ? usecontext : property.contextOption);
 								resizeRule(container);
 							},
 							resizeItem: resizeRule,
