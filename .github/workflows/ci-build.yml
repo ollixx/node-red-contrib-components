@@ -1,19 +1,23 @@
-# This workflow will build and run tests using node
-
 name: ci build
 
-on: 
+on:
   push:
     branches-ignore:
       - 'master'
   pull_request:
     branches-ignore:
       - 'master'
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - run: ls -la
-      - run: npm install
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
       - run: npm test
+      - run: npm run test:coverage
+      - run: npm run pack:check

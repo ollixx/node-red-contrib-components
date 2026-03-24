@@ -8,6 +8,18 @@
         "type": "git",
         "url": "https://github.com/ollixx/node-red-contrib-components.git"
     },
+    "files": [
+        "LICENSE",
+        "README.md",
+        "components/*.js",
+        "components/*.html",
+        "components/COMP_PROTOCOL.md",
+        "components/lib/*.js",
+        "components/locales/**/*.json",
+        "components/locales/**/*.html",
+        "examples/**/*.json",
+        "images/**/*"
+    ],
     "keywords": [
         "node-red",
         "component",
@@ -34,7 +46,10 @@
         "test": "npm run test:runtime",
         "test:runtime": "node components/test/check-no-focused-tests.js && mocha components/test/*_spec.js",
         "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --branches 80 npm run test:runtime",
-        "uitest": "npm --prefix ./components/uitest/ install; cd components/uitest/; mocha *_spec.js"
+        "uitest": "npm --prefix ./components/uitest/ install; cd components/uitest/; mocha *_spec.js",
+        "pack:dry-run": "npm pack --dry-run --json",
+        "pack:check": "node scripts/validate-pack-dry-run.js",
+        "release:check": "npm test && npm run test:coverage && npm run pack:check"
     },
     "c8": {
         "exclude": [
