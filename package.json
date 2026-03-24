@@ -31,7 +31,7 @@
     },
     "dependencies": {},
     "scripts": {
-        "test": "mocha components/test/*_spec.js",
+        "test": "node components/test/check-no-focused-tests.js && mocha components/test/*_spec.js",
         "uitest": "npm --prefix ./components/uitest/ install; cd components/uitest/; mocha *_spec.js"
     }
 }

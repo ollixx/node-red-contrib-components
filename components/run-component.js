@@ -1,5 +1,12 @@
 const componentsEmitter = require("./emitter");
 
+function normalizeError(err, fallbackMessage) {
+  if (err instanceof Error) {
+    return err;
+  }
+  return new Error(fallbackMessage || String(err));
+}
+
 module.exports = function (RED) {
 
   const EVENT_START_FLOW = "comp-start-flow";
@@ -134,8 +141,7 @@ module.exports = function (RED) {
         componentsEmitter.emit(EVENT_START_FLOW + "-" + node.targetComponentId, msg);
       }
     } catch (err) {
-      console.trace(node.name || node.type, node.id, err);
-      node.error(node.name || node.type, node.id, err);
+      node.error(normalizeError(err, node.name || node.type), msg);
     }
   }
 
@@ -156,6 +162,13 @@ module.exports = function (RED) {
     node.statuz = config.statuz;
     node.statuzType = config.statuzType;
     node.outLabels = config.outLabels;
+    if (node.statuzType === "jsonata" && node.statuz) {
+      try {
+        node.statuzExpression = RED.util.prepareJSONataExpression(node.statuz, node);
+      } catch (err) {
+        node.error(normalizeError(err, "failed to prepare component status expression"));
+      }
+    }
 
     if (!node.targetComponentId) {
       node.error(RED._("components.message.componentNotConnected"))
@@ -164,18 +177,22 @@ module.exports = function (RED) {
 
     function setStatuz(node, msg) {
       let done = (err, statuz) => {
+        if (err) {
+          node.error(normalizeError(err, "failed to evaluate component status"), msg);
+          return;
+        }
         if (typeof (statuz) != "object") {
           statuz = { text: statuz }
         }
         node.status(statuz);
       }
-      if (node.propertyType === 'jsonata') {
-        RED.util.evaluateJSONataExpression(node.statuz, msg, (err, val) => {
-          done(undefined, val)
+      if (node.statuzType === 'jsonata') {
+        RED.util.evaluateJSONataExpression(node.statuzExpression, msg, (err, val) => {
+          done(err, val)
         });
       } else {
-        let res = RED.util.evaluateNodeProperty(node.statuz, node.statuzType, node, msg, (err, val) => {
-          done(undefined, val)
+        RED.util.evaluateNodeProperty(node.statuz, node.statuzType, node, msg, (err, val) => {
+          done(err, val)
         });
       }
     }
@@ -190,6 +207,7 @@ module.exports = function (RED) {
       }
       if (typeof msg._comp.stack == "undefined" || msg._comp.stack == null || msg._comp.stack.length == 0) {
         node.error(RED._("components.message.invalid_stack", { nodeId: node.id }), msg);
+        return;
       }
       let stack = msg._comp.stack
       let returnNode = msg._comp.returnNode;
@@ -219,7 +237,7 @@ module.exports = function (RED) {
         if (!returnNode || returnNode.mode == "default") {
           node.send(msg);
         } else {
-          msgArr = [];
+          let msgArr = [];
           let portLabel
           for (let i in node.outLabels) {
             portLabel = node.outLabels[i]

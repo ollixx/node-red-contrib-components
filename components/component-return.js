@@ -1,5 +1,12 @@
 const componentsEmitter = require("./emitter");
 
+function normalizeError(err, fallbackMessage) {
+  if (err instanceof Error) {
+    return err;
+  }
+  return new Error(fallbackMessage || String(err));
+}
+
 module.exports = function (RED) {
 
   const EVENT_START_FLOW = "comp-start-flow";
@@ -136,9 +143,7 @@ module.exports = function (RED) {
                 let targetComponent = RED.nodes.getNode(runNode.targetComponentId);
                 // legacy
                 if (!targetComponent) {
-                  console.log("legacy", runNode);
-                  console.log("_comp?", msg._comp);
-                  targetComponent = RED.nodes.getNode(runNode.targetComponent.id);
+                  targetComponent = runNode.targetComponent && RED.nodes.getNode(runNode.targetComponent.id);
                 }
 
                 if (targetComponent && targetComponent.id == node.inNode.id) {
@@ -164,14 +169,11 @@ module.exports = function (RED) {
               }
             });
           } catch (err) {
-            console.trace(node.name || node.type, node.id, err)
-            node.error("err in out:  " + err);
+            node.error(normalizeError(err, "component return broadcast failed"), msg);
           }
         }
       } catch (err) {
-        console.trace(err)
-        node.error("err in return", err)
-        // console.trace()
+        node.error(normalizeError(err, "component return failed"), msg)
       }
     }); // END: on input
 

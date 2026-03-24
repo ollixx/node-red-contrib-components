@@ -1,5 +1,12 @@
 const componentsEmitter = require("./emitter");
 
+function normalizeError(err, fallbackMessage) {
+  if (err instanceof Error) {
+    return err;
+  }
+  return new Error(fallbackMessage || String(err));
+}
+
 module.exports = function (RED) {
 
   const EVENT_START_FLOW = "comp-start-flow";
@@ -26,14 +33,14 @@ module.exports = function (RED) {
     try {
       let node = RED.nodes.getNode(nodeid);
       if (!node) {
-        throw "could not find node for id" + nodeid;
+        throw new Error("could not find node for id " + nodeid);
       }
       if (node.wires && node.wires.length > 0) {
         node.wires.forEach((outPort) => {
           outPort.forEach((childid) => {
             let child = RED.nodes.getNode(childid);
             if (!child) {
-              throw "could not find child node for id" + childid;
+              throw new Error("could not find child node for id " + childid);
             }
             if (child.type == type) {
               foundNodes[childid] = child;
@@ -92,8 +99,7 @@ module.exports = function (RED) {
           node.receive(msg);
         }
       } catch (err) {
-        console.trace(err)
-        node.error(err)
+        node.error(normalizeError(err, "component start failed"), msg)
       }
     }
     componentsEmitter.on(EVENT_START_FLOW + "-" + node.id, startFlowHandler);
