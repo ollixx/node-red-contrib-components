@@ -107,5 +107,7 @@ dist
 
 components/uitest/*.png
 components/uitest/.*
-components/uitest/mode_modules/*
+components/uitest/node_modules/
+components/uitest/playwright-report/
+components/uitest/test-results/
 

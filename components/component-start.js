@@ -1,69 +1,18 @@
 const componentsEmitter = require("./emitter");
+const { clearTarget, peekStackEntry } = require("./lib/comp-protocol");
+const { findConnectedNodesByType, isInvalidInSubflow } = require("./lib/runtime-graph");
+
+function normalizeError(err, fallbackMessage) {
+  if (err instanceof Error) {
+    return err;
+  }
+  return new Error(fallbackMessage || String(err));
+}
 
 module.exports = function (RED) {
 
   const EVENT_START_FLOW = "comp-start-flow";
   const EVENT_RETURN_FLOW = "comp-flow-return";
-
-  function isInvalidInSubflow(red, node) {
-    let found = false
-    RED.nodes.eachNode((n) => {
-      if (n.id == node.z && n.type.startsWith("subflow")) {
-        found = true
-      }
-    })
-    return found
-  }
-
-  // find all RETURN component nodes, that are connected to me.
-  // traverses all connected nodes, including link nodes
-  const findReturnNodes = function (nodeid, foundNodes, type = "component_out", visited = []) {
-    if (visited.includes(nodeid)) {
-      // already been here, so quit
-      return;
-    }
-    visited.push(nodeid); // mark as vistited
-    try {
-      let node = RED.nodes.getNode(nodeid);
-      if (!node) {
-        throw "could not find node for id" + nodeid;
-      }
-      if (node.wires && node.wires.length > 0) {
-        node.wires.forEach((outPort) => {
-          outPort.forEach((childid) => {
-            let child = RED.nodes.getNode(childid);
-            if (!child) {
-              throw "could not find child node for id" + childid;
-            }
-            if (child.type == type) {
-              foundNodes[childid] = child;
-            } else if (child.type == "link out") {
-              // look for more nodes at the other side of the link
-              if (child.links) {
-                // old nr:
-                child.links.forEach((linkid) => {
-                  findReturnNodes(linkid, foundNodes, type, visited)
-                })
-              } else if (child.wires) {
-                // nr2
-                child.wires[0].forEach((linkid) => {
-                  findReturnNodes(linkid, foundNodes, type, visited)
-                })
-              }
-            }
-            // look for connected nodes
-            findReturnNodes(childid, foundNodes, type, visited)
-          })
-        });
-      }
-    } catch (err) {
-      /*
-      console.log("-----------------------------/n  error in first nodeid", visited[0]);
-      console.log("  visited", visited);
-      console.trace(err)
-      //*/
-    }
-  }
 
   /*
 
@@ -88,12 +37,11 @@ module.exports = function (RED) {
         }
         let target = msg._comp ? msg._comp.target : undefined;
         if (target == node.id) {
-          delete msg._comp.target; // remove flag to start this node.
+          clearTarget(msg); // remove flag to start this node.
           node.receive(msg);
         }
       } catch (err) {
-        console.trace(err)
-        node.error(err)
+        node.error(normalizeError(err, "component start failed"), msg)
       }
     }
     componentsEmitter.on(EVENT_START_FLOW + "-" + node.id, startFlowHandler);
@@ -108,17 +56,21 @@ module.exports = function (RED) {
         node.error("component not allowed in subflow")
         return
       }
-      let stack = msg._comp.stack;
-      let lastEntry = stack.slice(-1)[0];
+      let lastEntry = peekStackEntry(msg);
+      if (!lastEntry) {
+        node.error(RED._("components.message.invalid_stack", { nodeId: node.id }), msg)
+        return
+      }
       node.status({ fill: "grey", shape: "ring", text: RED._("components.message.lastCaller") + ": " + lastEntry.callerId });
       this.send(msg);
 
       // If this START node is not connected to a return node, we send back a notification to the calling RUN node, so it can continue.
-      let foundReturnNodes = {}
-      findReturnNodes(node.id, foundReturnNodes)
-      if (Object.keys(foundReturnNodes).length == 0) {
+      if (!node._returnNodeIds) {
+        node._returnNodeIds = Object.keys(findConnectedNodesByType(RED, node.id))
+      }
+      if (node._returnNodeIds.length == 0) {
         // send event to caller, so he can finish his "running" state
-        componentsEmitter.emit(EVENT_RETURN_FLOW + "-" + lastEntry.callerId, msg);
+        componentsEmitter.emit(EVENT_RETURN_FLOW + "-" + lastEntry.callerId, RED.util.cloneMessage(msg));
       }
     });
 

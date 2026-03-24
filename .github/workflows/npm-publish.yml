@@ -1,30 +1,55 @@
-# This workflow will run tests using node and then publish a package to the NPM repo
-
 name: Publish to NPM
 
 on:
   push:
-    branches:
-      - 'master'
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to publish, for example v0.3.4
+        required: true
+        type: string
+
 jobs:
-  test:
+  validate:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
     steps:
-      - uses: actions/checkout@v2
-      - run: ls -la
-      - run: npm install
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/validate-release-version.js
       - run: npm test
+      - run: npm run test:coverage
+      - run: npm run pack:check
+      - run: npm --prefix ./components/uitest/ install
+      - run: npx --prefix ./components/uitest playwright install --with-deps chromium
+      - run: npm run uitest
+
   publish:
     runs-on: ubuntu-latest
-    needs: test
+    needs: validate
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Build
-        run: npm install
-      - name: Publish
-        uses: mikeal/merge-release@master
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/validate-release-version.js
+      - run: npm run pack:check
+      - name: Publish package
+        run: npm publish --provenance
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-          SRC_PACKAGE_DIR: /
-          DEPLOY_DIR: /
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

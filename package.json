@@ -8,6 +8,21 @@
         "type": "git",
         "url": "https://github.com/ollixx/node-red-contrib-components.git"
     },
+    "engines": {
+        "node": ">=18 <23"
+    },
+    "files": [
+        "LICENSE",
+        "README.md",
+        "components/*.js",
+        "components/*.html",
+        "components/COMP_PROTOCOL.md",
+        "components/lib/*.js",
+        "components/locales/**/*.json",
+        "components/locales/**/*.html",
+        "examples/**/*.json",
+        "images/**/*"
+    ],
     "keywords": [
         "node-red",
         "component",
@@ -24,14 +39,24 @@
         }
     },
     "devDependencies": {
-        "mocha": "^7.0.1",
-        "node-red": "^1.2.2",
-        "node-red-node-test-helper": "^0.2.7",
-        "puppeteer": "^12.0.1"
+        "c8": "^11.0.0",
+        "mocha": "^11.7.5",
+        "node-red": "^4.1.8",
+        "node-red-node-test-helper": "^0.3.6"
     },
-    "dependencies": {},
     "scripts": {
-        "test": "mocha components/test/*_spec.js",
-        "uitest": "npm --prefix ./components/uitest/ install; cd components/uitest/; mocha *_spec.js"
+        "test": "npm run test:runtime",
+        "test:runtime": "node components/test/check-no-focused-tests.js && mocha components/test/*_spec.js",
+        "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --branches 80 --functions 0 --lines 0 --statements 0 npm run test:runtime",
+        "uitest": "npm --prefix ./components/uitest/ install && npm --prefix ./components/uitest/ test",
+        "pack:dry-run": "npm pack --dry-run --json",
+        "pack:check": "node scripts/validate-pack-dry-run.js",
+        "release:check": "npm test && npm run test:coverage && npm run pack:check && npm run uitest"
+    },
+    "c8": {
+        "exclude": [
+            "components/test/**",
+            "components/uitest/**"
+        ]
     }
 }

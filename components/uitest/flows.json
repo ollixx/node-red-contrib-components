@@ -3308,5 +3308,160 @@
         "x": 730,
         "y": 660,
         "wires": []
+    },
+    {
+        "id": "pw_tab",
+        "type": "tab",
+        "label": "playwright e2e",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "pw_target",
+        "type": "component_in",
+        "z": "pw_tab",
+        "name": "Playwright Component",
+        "api": [
+            {
+                "name": "requiredName",
+                "type": "string",
+                "required": true,
+                "contextOption": false
+            },
+            {
+                "name": "optionalCount",
+                "type": "number",
+                "required": false,
+                "contextOption": false
+            }
+        ],
+        "usecontext": false,
+        "x": 170,
+        "y": 120,
+        "wires": [
+            [
+                "pw_ret_default",
+                "pw_ret_separate"
+            ]
+        ]
+    },
+    {
+        "id": "pw_ret_default",
+        "type": "component_out",
+        "z": "pw_tab",
+        "name": "default return",
+        "mode": "default",
+        "x": 450,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "pw_ret_separate",
+        "type": "component_out",
+        "z": "pw_tab",
+        "name": "separate return",
+        "mode": "separate",
+        "x": 450,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "pw_run_choose",
+        "type": "component",
+        "z": "pw_tab",
+        "name": "select component",
+        "targetComponent": null,
+        "targetComponentId": null,
+        "paramSources": {},
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 180,
+        "y": 220,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "pw_run_valid",
+        "type": "component",
+        "z": "pw_tab",
+        "name": "synced outputs",
+        "targetComponent": null,
+        "targetComponentId": "pw_target",
+        "paramSources": {
+            "requiredName": {
+                "name": "requiredName",
+                "source": "hello",
+                "sourceType": "str"
+            },
+            "optionalCount": {
+                "name": "optionalCount",
+                "source": "42",
+                "sourceType": "num"
+            }
+        },
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 2,
+        "outLabels": [
+            "default",
+            "separate return"
+        ],
+        "x": 180,
+        "y": 280,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
+        "id": "pw_run_missing",
+        "type": "component",
+        "z": "pw_tab",
+        "name": "missing component",
+        "targetComponent": null,
+        "targetComponentId": "pw_missing_target",
+        "paramSources": {},
+        "statuz": "",
+        "statuzType": "str",
+        "outputs": 1,
+        "outLabels": [
+            "default"
+        ],
+        "x": 180,
+        "y": 340,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "pw_local_flags",
+        "type": "component_in",
+        "z": "pw_tab",
+        "name": "local flags start",
+        "api": [
+            {
+                "name": "firstParam",
+                "type": "string",
+                "required": true,
+                "contextOption": false
+            },
+            {
+                "name": "secondParam",
+                "type": "number",
+                "required": true,
+                "contextOption": false
+            }
+        ],
+        "usecontext": true,
+        "x": 180,
+        "y": 420,
+        "wires": [
+            []
+        ]
     }
 ]
