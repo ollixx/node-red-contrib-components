@@ -13,7 +13,7 @@
             },
             "outportChange": "Attention",
             "componentInSubflow": "Not allowed inside subflows",
-                        "validation": "Validation",
+            "validation": "Validation",
             "global": "global"
         },
         "message": {

@@ -69,127 +69,127 @@
 		}
 
 		RED.nodes.registerType('component_in', {
-		category: COMPONENTS_CATEGORY,
-		color: COMPONENTS_COLOR,
-		defaults: {
-			name: { value: "component in" },
-			api: { value: [{ name: "prop", type: "json" }] },
-			usecontext: { value: true },
-			component_definitions_are_NOT_allowed_inside_subflows: {
-				value: RED.nodes.subflow(this.z), validate: function (v) {
-					return !RED.nodes.subflow(this.z)
+			category: COMPONENTS_CATEGORY,
+			color: COMPONENTS_COLOR,
+			defaults: {
+				name: { value: "component in" },
+				api: { value: [{ name: "prop", type: "json" }] },
+				usecontext: { value: true },
+				component_definitions_are_NOT_allowed_inside_subflows: {
+					value: RED.nodes.subflow(this.z), validate: function (v) {
+						return !RED.nodes.subflow(this.z)
+					}
+				},
+			},
+			label: function () {
+				if (RED.nodes.subflow(this.z)) {
+					return "Define Components only outside of subflows"
+				} else {
+					return this.name || "comp start";
 				}
 			},
-		},
-		label: function () {
-			if (RED.nodes.subflow(this.z)) {
-				return "Define Components only outside of subflows"
-			} else {
-				return this.name || "comp start";
-			}
-		},
-		inputs: 0,
-		outputs: 1,
-		icon: "inject.svg",
-		paletteLabel: "comp start",
-		oneditprepare: function () {
-			try {
-				if (RED.nodes.subflow(this.z)) {
-					$(".invalid").show()
-					$(".valid").hide()
-				} else {
-					$(".valid").show()
-					$(".invalid").hide()
+			inputs: 0,
+			outputs: 1,
+			icon: "inject.svg",
+			paletteLabel: "comp start",
+			oneditprepare: function () {
+				try {
+					if (RED.nodes.subflow(this.z)) {
+						$(".invalid").show()
+						$(".valid").hide()
+					} else {
+						$(".valid").show()
+						$(".invalid").hide()
 
-					// context mode
-					let usecontext = this.usecontext || false;
-					let cbContext = $("#node-input-usecontext");
-					cbContext.prop("checked", usecontext);
-					cbContext.on("click", function () {
-						if (cbContext.prop("checked")) {
-							$(".contextoption").show();
-						} else {
-							$(".contextoption").hide();
-						}
-					});
-
-					let i18n = this._;
-					function resizeRule(item) {
-						// not used yet
-					}
-					$('#node-input-api-container').css('min-height', '250px').css('min-width', '450px').editableList({
-						addItem: function (container, index, property) {
-							if (!property.type) {
-								// empty, new item
-								property.type = "json";
-								property.required = false;
-							}
-							container.css({
-								overflow: 'hidden',
-								whiteSpace: 'nowrap'
-							});
-							var row1 = $('<div style="display: flex;"/>').appendTo(container);
-							//var row2 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
-
-							var propertyName = $('<input/>', { class: "node-input-property-name", style: "margin-right:10px; flex: 1 0 max-content;", type: "text", placeholder: "name" }).appendTo(row1);
-							var selectField = $('<select/>', { class: "node-input-property-type", style: "margin-right:10px;  flex: 0 0 min-content;" }).appendTo(row1);
-							var selectOptions = [{ v: "any", l: "any" }, { v: "string", l: "string" }, { v: "number", l: "number" }, { v: "json", l: "json" }, { v: "boolean", l: "boolean" }];
-							for (var i = 0; i < selectOptions.length; i++) {
-								selectField.append($("<option></option>").val(selectOptions[i].v).text(selectOptions[i].l));
-							}
-							// next column: checkboxes for required / validate stacked vertically
-							var checkBoxes = $('<div>', { style: "flex: 0 0 min-content; display: flex; flex-direction: column" }).appendTo(row1);
-
-							var checkRow1 = $('<div>', { style: "flex: 0 0 min-content; display: flex; align-items: top" }).appendTo(checkBoxes);
-							var required = $('<input/>', { id: "cb_required_" + index, class: "node-input-property-required", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
-							$('<label/>', { text: i18n("components.label.required"), 'for': 'cb_required_' + index, style: "flex: 2;" }).appendTo(checkRow1);
-							var context = $('<input/>', { id: "cb_context_" + index, class: "node-input-property-contextoption contextoption", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
-							var contextLabel = $('<label/>', { text: i18n("components.label.context_local"), 'for': 'cb_context_' + index, style: "flex: 2;", class: "contextoption" }).appendTo(checkRow1);
-							if (usecontext) {
-								context.show();
-								contextLabel.show();
+						// context mode
+						let usecontext = this.usecontext || false;
+						let cbContext = $("#node-input-usecontext");
+						cbContext.prop("checked", usecontext);
+						cbContext.on("click", function () {
+							if (cbContext.prop("checked")) {
+								$(".contextoption").show();
 							} else {
-								context.hide();
-								contextLabel.hide();
+								$(".contextoption").hide();
 							}
+						});
 
-							propertyName.val(property.name);
-							selectField.val(property.type);
-							required.prop("checked", property.required || false);
-							context.prop("checked", property.contextOption || usecontext);
-							resizeRule(container);
-						},
-						resizeItem: resizeRule,
-						removable: true,
-						sortable: true
-					});
+						let i18n = this._;
+						function resizeRule(item) {
+							// not used yet
+						}
+						$('#node-input-api-container').css('min-height', '250px').css('min-width', '450px').editableList({
+							addItem: function (container, index, property) {
+								if (!property.type) {
+									// empty, new item
+									property.type = "json";
+									property.required = false;
+								}
+								container.css({
+									overflow: 'hidden',
+									whiteSpace: 'nowrap'
+								});
+								var row1 = $('<div style="display: flex;"/>').appendTo(container);
+								//var row2 = $('<div/>', { style: "margin-top:8px;" }).appendTo(container);
 
-					// set api properties
-					for (var i = 0; i < this.api.length; i++) {
-						var prop = this.api[i];
-						$("#node-input-api-container").editableList('addItem', prop);
+								var propertyName = $('<input/>', { class: "node-input-property-name", style: "margin-right:10px; flex: 1 0 max-content;", type: "text", placeholder: "name" }).appendTo(row1);
+								var selectField = $('<select/>', { class: "node-input-property-type", style: "margin-right:10px;  flex: 0 0 min-content;" }).appendTo(row1);
+								var selectOptions = [{ v: "any", l: "any" }, { v: "string", l: "string" }, { v: "number", l: "number" }, { v: "json", l: "json" }, { v: "boolean", l: "boolean" }];
+								for (var i = 0; i < selectOptions.length; i++) {
+									selectField.append($("<option></option>").val(selectOptions[i].v).text(selectOptions[i].l));
+								}
+								// next column: checkboxes for required / validate stacked vertically
+								var checkBoxes = $('<div>', { style: "flex: 0 0 min-content; display: flex; flex-direction: column" }).appendTo(row1);
+
+								var checkRow1 = $('<div>', { style: "flex: 0 0 min-content; display: flex; align-items: top" }).appendTo(checkBoxes);
+								var required = $('<input/>', { id: "cb_required_" + index, class: "node-input-property-required", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
+								$('<label/>', { text: i18n("components.label.required"), 'for': 'cb_required_' + index, style: "flex: 2;" }).appendTo(checkRow1);
+								var context = $('<input/>', { id: "cb_context_" + index, class: "node-input-property-contextoption contextoption", type: "checkbox", style: "flex: 1;" }).appendTo(checkRow1);
+								var contextLabel = $('<label/>', { text: i18n("components.label.context_local"), 'for': 'cb_context_' + index, style: "flex: 2;", class: "contextoption" }).appendTo(checkRow1);
+								if (usecontext) {
+									context.show();
+									contextLabel.show();
+								} else {
+									context.hide();
+									contextLabel.hide();
+								}
+
+								propertyName.val(property.name);
+								selectField.val(property.type);
+								required.prop("checked", property.required || false);
+								context.prop("checked", property.contextOption || usecontext);
+								resizeRule(container);
+							},
+							resizeItem: resizeRule,
+							removable: true,
+							sortable: true
+						});
+
+						// set api properties
+						for (var i = 0; i < this.api.length; i++) {
+							var prop = this.api[i];
+							$("#node-input-api-container").editableList('addItem', prop);
+						}
+
 					}
 
+				} catch (err) {
+					console.error(err);
+					throw err;
 				}
-
-			} catch (err) {
-				console.error(err);
-				throw err;
+			},
+			oneditsave: function () {
+				var api = $("#node-input-api-container").editableList('items');
+				var node = this;
+				node.api = [];
+				api.each(function (i) {
+					var property = $(this);
+					var name = property.find(".node-input-property-name").val();
+					var type = property.find(".node-input-property-type").val();
+					var required = property.find(".node-input-property-required")[0].checked;
+					var contextOption = property.find(".node-input-property-contextoption")[0].checked;
+					node.api.push({ name, type, required, contextOption });
+				});
 			}
-		},
-		oneditsave: function () {
-			var api = $("#node-input-api-container").editableList('items');
-			var node = this;
-			node.api = [];
-			api.each(function (i) {
-				var property = $(this);
-				var name = property.find(".node-input-property-name").val();
-				var type = property.find(".node-input-property-type").val();
-				var required = property.find(".node-input-property-required")[0].checked;
-				var contextOption = property.find(".node-input-property-contextoption")[0].checked;
-				node.api.push({ name, type, required, contextOption });
-			});
-		}
 		});
 	})();
 </script>
