@@ -8,36 +8,54 @@
 		const MSG_NOT_CONNECTED = "notConnected";
 		const MSG_TOO_MANY_START_NODES = "tooManyStartNodes";
 
-		const findStartNodes = function (nodeId, sources = {}, visited = [], found = []) {
-			if (visited.includes(nodeId)) {
+		const getEndpointId = function (endpoint) {
+			if (!endpoint) {
+				return null;
+			}
+			if (typeof endpoint === "string") {
+				return endpoint;
+			}
+			return endpoint.id || null;
+		};
+
+		const findStartNodes = function (nodeId, visited = new Set(), found = new Set()) {
+			if (!nodeId || visited.has(nodeId)) {
 				return found;
 			}
-			visited.push(nodeId);
-			let node = RED.nodes.node(nodeId);
+
+			visited.add(nodeId);
+			const node = RED.nodes.node(nodeId);
 			if (!node) {
 				return found;
 			}
-			if (node.type == "component_in") {
-				found.push(nodeId);
+
+			if (node.type === "component_in") {
+				found.add(nodeId);
 			}
+
 			RED.nodes.eachLink((link) => {
-				if (link.target.id == nodeId) {
-					sources[link.source.id] = {};
-					findStartNodes(link.source.id, sources[link.source.id], visited, found);
+				if (getEndpointId(link && link.target) !== nodeId) {
+					return;
+				}
+
+				const sourceId = getEndpointId(link && link.source);
+				if (sourceId) {
+					findStartNodes(sourceId, visited, found);
 				}
 			});
-			if (node.type == "link in" && node.links) {
-				for (let lout of node.links) {
-					sources[lout] = {};
-					findStartNodes(lout, sources[lout], visited, found);
-				}
+
+			if (node.type === "link in" && Array.isArray(node.links)) {
+				node.links.forEach((linkOutId) => {
+					findStartNodes(linkOutId, visited, found);
+				});
 			}
+
 			return found;
 		};
 
 		const getValidationResult = function (node) {
-			let startNodes = findStartNodes(node.id);
-			if (startNodes.length == 0) {
+			const startNodes = Array.from(findStartNodes(node && node.id));
+			if (startNodes.length === 0) {
 				return {
 					codes: [MSG_NOT_CONNECTED],
 					message: RED._("components.message.componentNotConnected")
