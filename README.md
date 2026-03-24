@@ -192,6 +192,32 @@ What they cover:
 - `npm run uitest`: headless browser checks for key editor workflows
 - `npm run release:check`: full release gate used for the current review hardening work
 
+## Release workflow
+
+The repository distinguishes between stable releases and release candidates.
+
+- Stable release tags use the format `vX.Y.Z` and publish to the default npm `latest` dist-tag.
+- Release candidate tags use the format `vX.Y.Z-rc.N` and publish to the npm `next` dist-tag.
+
+Typical maintainer flow:
+
+```bash
+# release candidate
+npm version 0.3.5-rc.1
+git push origin develop --follow-tags
+
+# final release after RC validation
+npm version 0.3.5
+git push origin develop --follow-tags
+```
+
+The GitHub Actions setup enforces that:
+
+- stable publish runs reject prerelease tags
+- RC publish runs only accept `-rc.N` tags
+- both paths run the same validation gates before publishing
+- RC publishes are marked as GitHub prereleases
+
 ## Additional technical notes
 
 For maintainers who need the runtime protocol details, see [components/COMP_PROTOCOL.md](components/COMP_PROTOCOL.md).
