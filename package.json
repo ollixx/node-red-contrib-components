@@ -24,14 +24,22 @@
         }
     },
     "devDependencies": {
+        "c8": "^11.0.0",
         "mocha": "^7.0.1",
         "node-red": "^1.2.2",
         "node-red-node-test-helper": "^0.2.7",
         "puppeteer": "^12.0.1"
     },
-    "dependencies": {},
     "scripts": {
-        "test": "node components/test/check-no-focused-tests.js && mocha components/test/*_spec.js",
+        "test": "npm run test:runtime",
+        "test:runtime": "node components/test/check-no-focused-tests.js && mocha components/test/*_spec.js",
+        "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --branches 80 npm run test:runtime",
         "uitest": "npm --prefix ./components/uitest/ install; cd components/uitest/; mocha *_spec.js"
+    },
+    "c8": {
+        "exclude": [
+            "components/test/**",
+            "components/uitest/**"
+        ]
     }
 }
