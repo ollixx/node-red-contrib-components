@@ -56,6 +56,7 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
           cache: npm
+      - run: npm install --global npm@^11.5.1
       - name: Require supported release tag format
         run: |
           case "$RELEASE_TAG" in
@@ -70,6 +71,8 @@ jobs:
       - run: node scripts/validate-release-version.js
       - run: npm run pack:check
       - name: Publish package
+        env:
+          NODE_AUTH_TOKEN: ''
         run: |
           case "$RELEASE_TAG" in
             v*.*.*-rc.*)
