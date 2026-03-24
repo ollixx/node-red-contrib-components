@@ -2,132 +2,171 @@
 			******* COMPONENT RETURN *************
 -->
 <script type="text/javascript">
-	const findStartNodes = function (nodeId, sources = {}, visited = [], found = []) {
-		if (visited.includes(nodeId)) {
-			return sources;
-		}
-		visited.push(nodeId);
-		let node = RED.nodes.node(nodeId);
-		if (node.type == "component_in") {
-			found.push(nodeId);
-		}
-		RED.nodes.eachLink((link) => {
-			if (link.target.id == nodeId) {
-				sources[link.source.id] = {};
-				findStartNodes(link.source.id, sources[link.source.id], visited, found);
-			}
-		});
-		if (node.type == "link in") {
-			let linkOuts = node.links;
-			for (let lout of linkOuts) {
-				sources[lout] = {};
-				findStartNodes(lout, sources[lout], visited, found);
-			};
-		}
-		return found;
-	};
+	(() => {
+		const COMPONENTS_COLOR = "#1dc91d";
+		const COMPONENTS_CATEGORY = "advanced";
+		const MSG_NOT_CONNECTED = "notConnected";
+		const MSG_TOO_MANY_START_NODES = "tooManyStartNodes";
 
-	const MSG_NOT_CONNECTED = "node is not connected";
-	const MSG_TOO_MANY_START_NODES = "node is connected to multiple start nodes";
+		const getEndpointId = function (endpoint) {
+			if (!endpoint) {
+				return null;
+			}
+			if (typeof endpoint === "string") {
+				return endpoint;
+			}
+			return endpoint.id || null;
+		};
 
-	const doValidate = function (val) {
-		let node = val;
-		if (val == null || typeof (val) != "object") {
-			node = RED.nodes.node(this.id);
-			console.log("in name validation", val, node);
-		}
-		node.validationErrors = [];
-		let startNodes = findStartNodes(node.id);
-		if (startNodes.length == 0) {
-			if (!node.validationErrors.includes(MSG_NOT_CONNECTED)) {
-				node.validationErrors.push(MSG_NOT_CONNECTED);
-				node.change = true;
-				RED.view.redraw(node);
+		const findStartNodes = function (nodeId, visited = new Set(), found = new Set()) {
+			if (!nodeId || visited.has(nodeId)) {
+				return found;
 			}
-		} else if (startNodes.length > 1) {
-			if (!node.validationErrors.includes(MSG_TOO_MANY_START_NODES)) {
-				node.validationErrors.push(MSG_TOO_MANY_START_NODES);
-				node.change = true;
-				RED.view.redraw(node);
+
+			visited.add(nodeId);
+			const node = RED.nodes.node(nodeId);
+			if (!node) {
+				return found;
 			}
-		} else {
-			if (node.validationErrors.includes(MSG_NOT_CONNECTED)) {
-				const index = node.validationErrors.indexOf(MSG_NOT_CONNECTED);
-				if (index > -1) {
-					node.validationErrors.splice(index, 1);
-					node.change = true;
-					RED.view.redraw(node);
+
+			if (node.type === "component_in") {
+				found.add(nodeId);
+			}
+
+			RED.nodes.eachLink((link) => {
+				if (getEndpointId(link && link.target) !== nodeId) {
+					return;
 				}
-			}
-			if (node.validationErrors.includes(MSG_TOO_MANY_START_NODES)) {
-				const index = node.validationErrors.indexOf(MSG_TOO_MANY_START_NODES);
-				if (index > -1) {
-					node.validationErrors.splice(index, 1);
-					node.change = true;
-					RED.view.redraw(node);
-				}
-			}
-		}
-		node.valid = node.validationErrors.length == 0;
-		return node.valid;
-	}
 
-	if (RED.hooks) {
-		const handlerX = function (event) {
-			if (event.node.type == "component_out") {
-				doValidate(event.node)
+				const sourceId = getEndpointId(link && link.source);
+				if (sourceId) {
+					findStartNodes(sourceId, visited, found);
+				}
+			});
+
+			if (node.type === "link in" && Array.isArray(node.links)) {
+				node.links.forEach((linkOutId) => {
+					findStartNodes(linkOutId, visited, found);
+				});
+			}
+
+			return found;
+		};
+
+		const getValidationResult = function (node) {
+			const startNodes = Array.from(findStartNodes(node && node.id));
+			if (startNodes.length === 0) {
+				return {
+					codes: [MSG_NOT_CONNECTED],
+					message: RED._("components.message.componentNotConnected")
+				};
+			}
+			if (startNodes.length > 1) {
+				return {
+					codes: [MSG_TOO_MANY_START_NODES],
+					message: RED._("components.message.returnWithoutStart", { inNodeLength: startNodes.length })
+				};
+			}
+			return { codes: [], message: "" };
+		};
+
+		const renderValidationAlert = function (node) {
+			const alert = $("#component-return-validation-alert");
+			const text = $("#component-return-validation-alert-text");
+			if (!alert.length || RED.nodes.subflow(node.z)) {
+				return;
+			}
+			const result = getValidationResult(node);
+			if (result.message) {
+				text.text(result.message);
+				alert.show();
+			} else {
+				text.empty();
+				alert.hide();
 			}
 		};
-		RED.hooks.add("viewRedrawNode", handlerX);
-	} else {
-		console.warn("component-out: could not attach doValidate to RED.hooksad");
-	}
 
-	RED.nodes.registerType('component_out', {
-		category: COMPONENTS_CATEGORY,
-		color: COMPONENTS_COLOR,
-		label: function () {
-			if (RED.nodes.subflow(this.z)) {
-				return "Define Components only outside of subflows"
-			} else {
-				return this.name || "comp return";
+		const doValidate = function (val) {
+			let node = val;
+			if (val == null || typeof (val) != "object") {
+				node = RED.nodes.node(this.id);
 			}
-		},
-		align: 'right',
-		defaults: {
-			name: { value: null, validate: doValidate },
-			mode: { value: "default" },
-			component_definitions_are_NOT_allowed_inside_subflows: {
-				value: false, validate: function (v) {
-					return !RED.nodes.subflow(this.z)
+			if (!node) {
+				return false;
+			}
+			const previousErrors = Array.isArray(node.validationErrors) ? [...node.validationErrors] : [];
+			const result = getValidationResult(node);
+			node.validationErrors = result.codes;
+			renderValidationAlert(node);
+			if (previousErrors.join("|") !== result.codes.join("|")) {
+				node.change = true;
+				RED.view.redraw(node);
+			}
+			node.valid = node.validationErrors.length == 0;
+			return node.valid;
+		}
+
+		if (RED.hooks) {
+			const handlerX = function (event) {
+				if (event.node.type == "component_out") {
+					doValidate(event.node)
+				}
+			};
+			RED.hooks.add("viewRedrawNode", handlerX);
+		}
+
+		RED.nodes.registerType('component_out', {
+			category: COMPONENTS_CATEGORY,
+			color: COMPONENTS_COLOR,
+			label: function () {
+				if (RED.nodes.subflow(this.z)) {
+					return "Define Components only outside of subflows"
+				} else {
+					return this.name || "comp return";
 				}
 			},
-		},
-		inputs: 1,
-		outputs: 0,
-		icon: "font-awesome/fa-mail-reply",
-		paletteLabel: "comp return",
-		oneditprepare: function () {
-			// NOT allowed inside subflows.
-			if (RED.nodes.subflow(this.z)) {
-				$(".invalid").show()
-				$(".valid").hide()
-				//this.invalid = true;
-			} else {
-				// support legacy
-				if (this.mode === undefined) {
-					$('select option[value="default"]').attr("selected", true);
+			align: 'right',
+			defaults: {
+				name: { value: null, validate: doValidate },
+				mode: { value: "default" },
+				component_definitions_are_NOT_allowed_inside_subflows: {
+					value: false, validate: function (v) {
+						return !RED.nodes.subflow(this.z)
+					}
+				},
+			},
+			inputs: 1,
+			outputs: 0,
+			icon: "font-awesome/fa-mail-reply",
+			paletteLabel: "comp return",
+			oneditprepare: function () {
+				// NOT allowed inside subflows.
+				if (RED.nodes.subflow(this.z)) {
+					$(".invalid").show()
+					$(".valid").hide()
+					$("#component-return-validation-alert").hide()
+					//this.invalid = true;
+				} else {
+					// support legacy
+					if (this.mode === undefined) {
+						$('select option[value="default"]').attr("selected", true);
+					}
+					$(".valid").show()
+					$(".invalid").hide()
+					renderValidationAlert(this)
 				}
-				$(".valid").show()
-				$(".invalid").hide()
 			}
-		}
-	});
+		});
+	})();
 </script>
 <script type="text/x-red" data-template-name="component_out">
     <div class="form-row invalid" style="color: orange">
         <label><i class="fa fa-exclamation-triangle"></i></label>
         <span data-i18n="components.message.componentInSubflow"></span>
+    </div>
+    <div class="form-row valid" style="color: orange; display:none" id="component-return-validation-alert">
+        <label><i class="fa fa-exclamation-triangle"></i> <span data-i18n="components.label.validation"></span></label>
+        <span id="component-return-validation-alert-text"></span>
     </div>
     <div class="form-row valid">
         <label for="node-input-name" data-i18n="components.label.name"><i class="icon-tag"></i></label>

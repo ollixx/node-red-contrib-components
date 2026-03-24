@@ -286,7 +286,7 @@ describe('nested components global and local', function () {
         helper.unload();
     });
 
-    it.only('should basically work', function (done) {
+    it('should basically work', function (done) {
         helper.load([componentStart, componentReturn, runComponent, changeNode], testFlow1, {}, function () {
             var debug01 = helper.getNode("after RUN outer local");
             debug01.on("input", function (msg) {

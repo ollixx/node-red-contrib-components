@@ -228,6 +228,21 @@ var flowValidations = [
     }
 ]
 
+function expectValidationError(nodeId, payload, expectedErrors, done) {
+    helper.load([componentStart, componentReturn, runComponent], flowValidations, {}, function () {
+        var run = helper.getNode(nodeId);
+        run.on("call:error", function (call) {
+            try {
+                call.should.be.calledWithExactly(expectedErrors);
+                done();
+            } catch (e) {
+                done(e);
+            }
+        });
+        run.receive({ payload: payload });
+    });
+}
+
 describe('parameters with wrong type', function () {
 
     before(function (done) {
@@ -243,185 +258,94 @@ describe('parameters with wrong type', function () {
     });
 
     it('(string) should add a validation error', function (done) {
-        helper.load([componentStart, componentReturn, runComponent], flowValidations, {}, function () {
-            var run = helper.getNode("03");
-            run.on("input", function (msg) {
-                try {
-                    let expectedErrors = {
-                        validationErrors: {
-                            "number": "components.message.validationError",
-                            "json": "components.message.jsonValidationError",
-                            "boolean": "components.message.validationError",
-                            "req_number": "components.message.validationError",
-                            "req_json": "components.message.jsonValidationError",
-                            "req_boolean": "components.message.validationError"
-                        }
-                    };
-                    run.error.should.be.calledWithExactly(expectedErrors);
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
-            run.receive({
-                payload: "test"
-            });
-        });
+        let expectedErrors = {
+            validationErrors: {
+                "number": "components.message.validationError",
+                "json": "components.message.jsonValidationError",
+                "boolean": "components.message.validationError",
+                "req_number": "components.message.validationError",
+                "req_json": "components.message.jsonValidationError",
+                "req_boolean": "components.message.validationError"
+            }
+        };
+        expectValidationError("03", "test", expectedErrors, done);
     });
 
     it('(number) should add a validation error', function (done) {
-        helper.load([componentStart, componentReturn, runComponent], flowValidations, {}, function () {
-            var run = helper.getNode("03");
-            run.on("input", function (msg) {
-                try {
-                    let expectedErrors = {
-                        validationErrors: {
-                            "string": "components.message.validationError",
-                            "boolean": "components.message.validationError",
-                            "req_string": "components.message.validationError",
-                            "req_boolean": "components.message.validationError"
-                        }
-                    };
-                    run.error.should.be.calledWithExactly(expectedErrors);
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
-            run.receive({
-                payload: 42
-            });
-        });
+        let expectedErrors = {
+            validationErrors: {
+                "string": "components.message.validationError",
+                "boolean": "components.message.validationError",
+                "req_string": "components.message.validationError",
+                "req_boolean": "components.message.validationError"
+            }
+        };
+        expectValidationError("03", 42, expectedErrors, done);
     });
 
     it('(boolean) should add a validation error', function (done) {
-        helper.load([componentStart, componentReturn, runComponent], flowValidations, {}, function () {
-            var run = helper.getNode("03");
-            run.on("input", function (msg) {
-                try {
-                    let expectedErrors = {
-                        validationErrors: {
-                            "string": "components.message.validationError",
-                            "number": "components.message.validationError",
-                            "req_string": "components.message.validationError",
-                            "req_number": "components.message.validationError",
-                        }
-                    };
-                    run.error.should.be.calledWithExactly(expectedErrors);
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
-            run.receive({
-                payload: true
-            });
-        });
+        let expectedErrors = {
+            validationErrors: {
+                "string": "components.message.validationError",
+                "number": "components.message.validationError",
+                "req_string": "components.message.validationError",
+                "req_number": "components.message.validationError",
+            }
+        };
+        expectValidationError("03", true, expectedErrors, done);
     });
 
     it('(array) should add a validation error', function (done) {
-        helper.load([componentStart, componentReturn, runComponent], flowValidations, {}, function () {
-            var run = helper.getNode("03");
-            run.on("input", function (msg) {
-                try {
-                    let expectedErrors = {
-                        validationErrors: {
-                            "string": "components.message.validationError",
-                            "number": "components.message.validationError",
-                            "boolean": "components.message.validationError",
-                            "req_string": "components.message.validationError",
-                            "req_number": "components.message.validationError",
-                            "req_boolean": "components.message.validationError"
-                        }
-                    };
-                    run.error.should.be.calledWithExactly(expectedErrors);
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
-            run.receive({
-                payload: []
-            });
-        });
+        let expectedErrors = {
+            validationErrors: {
+                "string": "components.message.validationError",
+                "number": "components.message.validationError",
+                "boolean": "components.message.validationError",
+                "req_string": "components.message.validationError",
+                "req_number": "components.message.validationError",
+                "req_boolean": "components.message.validationError"
+            }
+        };
+        expectValidationError("03", [], expectedErrors, done);
     });
 
     it('(object) should add a validation error', function (done) {
-        helper.load([componentStart, componentReturn, runComponent], flowValidations, {}, function () {
-            var run = helper.getNode("03");
-            run.on("input", function (msg) {
-                try {
-                    let expectedErrors = {
-                        validationErrors: {
-                            "string": "components.message.validationError",
-                            "number": "components.message.validationError",
-                            "boolean": "components.message.validationError",
-                            "req_string": "components.message.validationError",
-                            "req_number": "components.message.validationError",
-                            "req_boolean": "components.message.validationError"
-                        }
-                    };
-                    run.error.should.be.calledWithExactly(expectedErrors);
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
-            run.receive({
-                payload: {}
-            });
-        });
+        let expectedErrors = {
+            validationErrors: {
+                "string": "components.message.validationError",
+                "number": "components.message.validationError",
+                "boolean": "components.message.validationError",
+                "req_string": "components.message.validationError",
+                "req_number": "components.message.validationError",
+                "req_boolean": "components.message.validationError"
+            }
+        };
+        expectValidationError("03", {}, expectedErrors, done);
     });
 
     it('(json string) should add a validation error', function (done) {
-        helper.load([componentStart, componentReturn, runComponent], flowValidations, {}, function () {
-            var run = helper.getNode("03");
-            run.on("input", function (msg) {
-                try {
-                    let expectedErrors = {
-                        validationErrors: {
-                            "number": "components.message.validationError",
-                            "boolean": "components.message.validationError",
-                            "req_number": "components.message.validationError",
-                            "req_boolean": "components.message.validationError"
-                        }
-                    };
-                    run.error.should.be.calledWithExactly(expectedErrors);
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
-            run.receive({
-                payload: "\"{answer: 42}\""
-            });
-        });
+        let expectedErrors = {
+            validationErrors: {
+                "number": "components.message.validationError",
+                "boolean": "components.message.validationError",
+                "req_number": "components.message.validationError",
+                "req_boolean": "components.message.validationError"
+            }
+        };
+        expectValidationError("03", "\"{answer: 42}\"", expectedErrors, done);
     });
 
     it('(required) should add a validation error', function (done) {
-        helper.load([componentStart, componentReturn, runComponent], flowValidations, {}, function () {
-            var run = helper.getNode("04");
-            run.on("input", function (msg) {
-                try {
-                    let expectedErrors = {
-                        validationErrors: {
-                            "req_string": "components.message.missingProperty",
-                            "req_number": "components.message.missingProperty",
-                            "req_boolean": "components.message.missingProperty",
-                            "req_json": "components.message.missingProperty",
-                            "req_any": "components.message.missingProperty",
-                        }
-                    };
-                    run.error.should.be.calledWithExactly(expectedErrors);
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
-            run.receive({
-                payload: "test"
-            });
-        });
+        let expectedErrors = {
+            validationErrors: {
+                "req_string": "components.message.missingProperty",
+                "req_number": "components.message.missingProperty",
+                "req_boolean": "components.message.missingProperty",
+                "req_json": "components.message.missingProperty",
+                "req_any": "components.message.missingProperty",
+            }
+        };
+        expectValidationError("04", "test", expectedErrors, done);
     });
 
 });

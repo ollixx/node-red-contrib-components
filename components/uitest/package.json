@@ -1,9 +1,17 @@
 {
-    "name": "node-red-project",
-    "description": "A Node-RED Project",
+    "name": "node-red-components-uitest",
+    "description": "Playwright editor tests for node-red-contrib-components",
     "version": "0.0.1",
     "private": true,
+    "scripts": {
+        "test": "playwright test"
+    },
     "dependencies": {
         "node-red-contrib-components": "file:../../"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.58.2",
+        "express": "^4.21.2",
+        "node-red": "^4.1.8"
     }
 }

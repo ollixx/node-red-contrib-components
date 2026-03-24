@@ -1,47 +1,52 @@
 const componentsEmitter = require("./emitter");
+const {
+  clearComponentState,
+  clearReturnNode,
+  createStackEntry,
+  hasValidStack,
+  peekStackEntry,
+  popStackEntry,
+  pushStackEntry,
+  restoreParentContext,
+  setTarget
+} = require("./lib/comp-protocol");
+const { getNodeById } = require("./lib/runtime-graph");
+
+function normalizeError(err, fallbackMessage) {
+  if (err instanceof Error) {
+    return err;
+  }
+  return new Error(fallbackMessage || String(err));
+}
+
+function evaluateNodePropertyAsync(RED, value, valueType, node, msg) {
+  return new Promise((resolve, reject) => {
+    RED.util.evaluateNodeProperty(value, valueType, node, msg, (err, result) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(result);
+    });
+  });
+}
 
 module.exports = function (RED) {
 
   const EVENT_START_FLOW = "comp-start-flow";
   const EVENT_RETURN_FLOW = "comp-flow-return";
 
-  function evaluateNodeProperty(value, type, node, msg)
-  {
-    return new Promise((resolve, reject) => {
-        RED.util.evaluateNodeProperty(value, type, node, msg, (err, res) => {
-            if (err) {
-              reject(err);
-            } else {
-              //console.log("Res: " + res);
-              resolve(res);
-            }
-        });
-    });
-  }
-
   async function sendStartFlow(msg, node) {
     try {
-      // create / update state for new execution
-      if (typeof msg._comp == "undefined") {
-        // create from scratch
-        msg._comp = {
-          stack: []
-        };
-      }
-
       // target node's id (component in) to start flow
-      msg._comp.target = node.targetComponentId;
-      // let targetComponent = RED.nodes.getNode(node.targetComponentId);
-      let targetComponent = null;
-      // work around for RED.nodes.getNode( not working in node-red-test-helper
-      RED.nodes.eachNode((n) => { if (n.id == node.targetComponentId) { targetComponent = n } });
+      setTarget(msg, node.targetComponentId);
+      let targetComponent = getNodeById(RED, node.targetComponentId);
       if (!targetComponent) {
         throw new Error("could not find node for id: " + node.targetComponentId);
       }
       let usecontext = targetComponent.usecontext;
 
       // push my ID onto the stack - the next return will come back to me
-      let stackEntry = { callerId: node.id, targetId: node.targetComponentId }
       let context = {};
       if (usecontext) {
         /* store the current context as parent.
@@ -55,9 +60,8 @@ module.exports = function (RED) {
         // global flows store their current state as is.
         context = msg.component;
       }
-      stackEntry.context = context;
-
-      msg._comp.stack.push(stackEntry);
+      let stackEntry = createStackEntry(node.id, node.targetComponentId, context);
+      pushStackEntry(msg, stackEntry);
 
       // setup msg from parameters
       let validationErrors = {}
@@ -81,9 +85,8 @@ module.exports = function (RED) {
         // an empty, optional parameter is evaluated only, if the source type is "string".
         // In that case, the parameter is set(!). It is not put into the message in all other cases.
         if (paramSource.source && paramSource.source.length > 0 || paramSource.sourceType == "str") {
-          val = await evaluateNodeProperty(paramSource.source, paramSource.sourceType, node, msg);
+          val = await evaluateNodePropertyAsync(RED, paramSource.source, paramSource.sourceType, node, msg);
         }
-        //console.log("Val: " + val);
         if (val == null || val == undefined) {
           if (paramDef.required) {
             validationErrors[paramName] = RED._("components.message.missingProperty", { parameter: paramName });
@@ -149,8 +152,7 @@ module.exports = function (RED) {
         componentsEmitter.emit(EVENT_START_FLOW + "-" + node.targetComponentId, msg);
       }
     } catch (err) {
-      console.trace(node.name || node.type, node.id, err);
-      node.error(node.name || node.type, node.id, err);
+      node.error(normalizeError(err, node.name || node.type), msg);
     }
   }
 
@@ -166,11 +168,18 @@ module.exports = function (RED) {
     RED.nodes.createNode(this, config);
 
     var node = this;
-    node.targetComponentId = config.targetComponentId || config.targetComponent.id;
+    node.targetComponentId = config.targetComponentId || (config.targetComponent && config.targetComponent.id);
     node.paramSources = config.paramSources;
     node.statuz = config.statuz;
     node.statuzType = config.statuzType;
     node.outLabels = config.outLabels;
+    if (node.statuzType === "jsonata" && node.statuz) {
+      try {
+        node.statuzExpression = RED.util.prepareJSONataExpression(node.statuz, node);
+      } catch (err) {
+        node.error(normalizeError(err, "failed to prepare component status expression"));
+      }
+    }
 
     if (!node.targetComponentId) {
       node.error(RED._("components.message.componentNotConnected"))
@@ -179,18 +188,22 @@ module.exports = function (RED) {
 
     function setStatuz(node, msg) {
       let done = (err, statuz) => {
+        if (err) {
+          node.error(normalizeError(err, "failed to evaluate component status"), msg);
+          return;
+        }
         if (typeof (statuz) != "object") {
           statuz = { text: statuz }
         }
         node.status(statuz);
       }
-      if (node.propertyType === 'jsonata') {
-        RED.util.evaluateJSONataExpression(node.statuz, msg, (err, val) => {
-          done(undefined, val)
+      if (node.statuzType === 'jsonata') {
+        RED.util.evaluateJSONataExpression(node.statuzExpression, msg, (err, val) => {
+          done(err, val)
         });
       } else {
-        let res = RED.util.evaluateNodeProperty(node.statuz, node.statuzType, node, msg, (err, val) => {
-          done(undefined, val)
+        RED.util.evaluateNodeProperty(node.statuz, node.statuzType, node, msg, (err, val) => {
+          done(err, val)
         });
       }
     }
@@ -203,38 +216,32 @@ module.exports = function (RED) {
         // can only be one legal receiver.
         return
       }
-      if (typeof msg._comp.stack == "undefined" || msg._comp.stack == null || msg._comp.stack.length == 0) {
+      if (!hasValidStack(msg)) {
         node.error(RED._("components.message.invalid_stack", { nodeId: node.id }), msg);
+        return;
       }
-      let stack = msg._comp.stack
       let returnNode = msg._comp.returnNode;
-      let myEntry = stack.slice(-1)[0];
-      let usecontext = myEntry.context ? true : false;
+      let myEntry = peekStackEntry(msg);
       let inOnlyScenario = !returnNode && myEntry.targetId == node.targetComponentId;
       let broadcastScenario = returnNode && returnNode.broadcast;
       let defaultScenario = returnNode && returnNode.callerId == config.id
       if (inOnlyScenario || broadcastScenario || defaultScenario) {
         // here, the message is for me
-        stack.pop();
-        delete msg._comp.returnNode;
-        if (stack.length == 0) {
+        popStackEntry(msg);
+        clearReturnNode(msg);
+        if (!hasValidStack(msg)) {
           // stack is empty, so we are done.
-          delete msg._comp; // -> following event listeners (component nodes) won't be able to handle this event.
-          if (myEntry.context && myEntry.context._parent) {
-            msg.component = myEntry.context._parent;
-          } else {
-            delete msg.component; // we are at the root, outside of components and there was no msg.component before.
-          }
+          clearComponentState(msg); // -> following event listeners (component nodes) won't be able to handle this event.
+          restoreParentContext(msg, myEntry, null);
         } else {
-          let parentEntry = stack.slice(-1)[0];
-          msg.component = parentEntry.context;
+          restoreParentContext(msg, myEntry, peekStackEntry(msg));
         }
 
         // find outport
         if (!returnNode || returnNode.mode == "default") {
           node.send(msg);
         } else {
-          msgArr = [];
+          let msgArr = [];
           let portLabel
           for (let i in node.outLabels) {
             portLabel = node.outLabels[i]

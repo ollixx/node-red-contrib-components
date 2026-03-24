@@ -1,30 +1,119 @@
-# This workflow will run tests using node and then publish a package to the NPM repo
-
 name: Publish to NPM
 
 on:
   push:
-    branches:
-      - 'master'
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to publish, for example v0.3.4
+        required: true
+        type: string
+
 jobs:
-  test:
+  validate:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+      RELEASE_BRANCH: master
     steps:
-      - uses: actions/checkout@v2
-      - run: ls -la
-      - run: npm install
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Require supported release tag format
+        run: |
+          case "$RELEASE_TAG" in
+            v*.*.*-rc.*) ;;
+            v*.*.*) ;;
+            *)
+              echo "Publish workflow expects a stable tag like v0.4.0 or an RC tag like v0.4.0-rc.1. Received: $RELEASE_TAG" >&2
+              exit 1
+              ;;
+          esac
+      - name: Require tag commit on release branch
+        run: |
+          git fetch origin "$RELEASE_BRANCH" --depth=1
+          if ! git merge-base --is-ancestor HEAD "origin/$RELEASE_BRANCH"; then
+            echo "Release tag $RELEASE_TAG must point to a commit that is contained in origin/$RELEASE_BRANCH." >&2
+            exit 1
+          fi
+      - run: npm ci
+      - run: node scripts/validate-release-version.js
       - run: npm test
+      - run: npm run test:coverage
+      - run: npm run pack:check
+      - run: npm --prefix ./components/uitest/ install
+      - run: npx --prefix ./components/uitest playwright install --with-deps chromium
+      - run: npm run uitest
+
   publish:
     runs-on: ubuntu-latest
-    needs: test
+    needs: validate
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+      RELEASE_BRANCH: master
     steps:
-      - uses: actions/checkout@v2
-      - name: Build
-        run: npm install
-      - name: Publish
-        uses: mikeal/merge-release@master
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+      - run: npm install --global npm@^11.5.1
+      - name: Require supported release tag format
+        run: |
+          case "$RELEASE_TAG" in
+            v*.*.*-rc.*) ;;
+            v*.*.*) ;;
+            *)
+              echo "Publish workflow expects a stable tag like v0.4.0 or an RC tag like v0.4.0-rc.1. Received: $RELEASE_TAG" >&2
+              exit 1
+              ;;
+          esac
+      - name: Require tag commit on release branch
+        run: |
+          git fetch origin "$RELEASE_BRANCH" --depth=1
+          if ! git merge-base --is-ancestor HEAD "origin/$RELEASE_BRANCH"; then
+            echo "Release tag $RELEASE_TAG must point to a commit that is contained in origin/$RELEASE_BRANCH." >&2
+            exit 1
+          fi
+      - run: npm ci
+      - run: node scripts/validate-release-version.js
+      - run: npm run pack:check
+      - name: Publish package
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-          SRC_PACKAGE_DIR: /
-          DEPLOY_DIR: /
+          NODE_AUTH_TOKEN: ''
+        run: |
+          case "$RELEASE_TAG" in
+            v*.*.*-rc.*)
+              npm publish --tag next
+              ;;
+            v*.*.*)
+              npm publish
+              ;;
+          esac
+      - name: Create GitHub prerelease
+        if: ${{ contains(env.RELEASE_TAG, '-rc.') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          prerelease: true
+          body: |
+            Release candidate for ${{ env.RELEASE_TAG }}.
+
+            Published from the tagged commit on master to the npm `next` dist-tag.
+
+            Install for validation with:
+            npm install node-red-contrib-components@next
