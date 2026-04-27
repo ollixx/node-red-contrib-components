@@ -62,6 +62,20 @@ describe("runtime graph helpers", function () {
         Object.keys(foundInNodes).should.eql(["in01"]);
     });
 
+    it("should find component_in through a junction when only one component_in feeds into it", function () {
+        var red = createRed({
+            in01: { id: "in01", type: "component_in", wires: [["junction01"]] },
+            change01: { id: "change01", type: "change", wires: [["junction01"]] },
+            junction01: { id: "junction01", type: "junction", wires: [["ret01"]] },
+            ret01: { id: "ret01", type: "component_out", wires: [] }
+        });
+
+        var hierarchy = graphHelpers.getCallerHierarchy(red, "ret01");
+        var foundInNodes = graphHelpers.findComponentInNodes(hierarchy);
+
+        Object.keys(foundInNodes).should.eql(["in01"]);
+    });
+
     it("should resolve runner nodes via targetComponentId or legacy targetComponent", function () {
         var red = createRed({
             run01: { id: "run01", type: "component", targetComponentId: "in01" },
