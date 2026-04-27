@@ -1,0 +1,82 @@
+[
+    {
+        "id": "33d65237882b3b9c",
+        "type": "inject",
+        "z": "1700d88b685b94b3",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 100,
+        "y": 80,
+        "wires": [
+            [
+                "d6b79e92029f622a"
+            ]
+        ]
+    },
+    {
+        "id": "5c0e0f360263c1eb",
+        "type": "component_in",
+        "z": "1700d88b685b94b3",
+        "name": "component in",
+        "api": [
+            {
+                "name": "prop",
+                "type": "json"
+            }
+        ],
+        "usecontext": true,
+        "x": 110,
+        "y": 140,
+        "wires": [
+            [
+                "d6b79e92029f622a"
+            ]
+        ]
+    },
+    {
+        "id": "5cceefd9f17ca6a2",
+        "type": "component_out",
+        "z": "1700d88b685b94b3",
+        "name": null,
+        "mode": "default",
+        "component_definitions_are_NOT_allowed_inside_subflows": false,
+        "x": 370,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "d6b79e92029f622a",
+        "type": "junction",
+        "z": "1700d88b685b94b3",
+        "x": 240,
+        "y": 140,
+        "wires": [
+            [
+                "5cceefd9f17ca6a2"
+            ]
+        ]
+    },
+    {
+        "id": "21059a7d43330b65",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-components": "0.4.0-rc.1"
+        }
+    }
+]

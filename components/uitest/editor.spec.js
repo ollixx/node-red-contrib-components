@@ -138,3 +138,44 @@ test("keeps explicit local flags unchecked when reopening a component start", as
 
     await closeNodeEditor(page, false);
 });
+
+test("component_out connected through a junction shows no notConnected annotation", async ({ page }) => {
+    await openEditor(page);
+
+    // Wait for the viewRedrawNode hook to have run for all nodes on the tab.
+    // The hook fires synchronously during the first render pass; waitForFunction
+    // polls until the node's valid flag is settled.
+    await page.waitForFunction(() => {
+        const node = RED.nodes.node("pw_junction_ret");
+        return node !== null && node !== undefined;
+    });
+
+    // The node must be valid – no notConnected validation error
+    const isValid = await page.evaluate(() => {
+        const node = RED.nodes.node("pw_junction_ret");
+        return node.valid !== false &&
+               (!Array.isArray(node.validationErrors) || node.validationErrors.length === 0);
+    });
+    expect(isValid).toBe(true);
+
+    // Opening the editor must not show the validation alert either
+    await openNodeEditor(page, "pw_junction_ret");
+    await expect(page.locator("#component-return-validation-alert")).toBeHidden();
+    await closeNodeEditor(page, false);
+});
+
+test("component runner targeting a junction-connected component discovers exactly one output", async ({ page }) => {
+    await openEditor(page);
+
+    // Open the runner node that points to the junction-connected component
+    await openNodeEditor(page, "pw_run_junction");
+
+    // Save – oneditsave runs findReturnNodes forward through the junction
+    await closeNodeEditor(page, true);
+
+    // After saving, the node must have exactly 1 output (the default component_out)
+    const outputs = await page.evaluate(() => {
+        return RED.nodes.node("pw_run_junction").outputs;
+    });
+    expect(outputs).toBe(1);
+});

@@ -78,4 +78,25 @@ describe("editor graph helpers", function () {
             message: "components.message.returnWithoutStart:2"
         });
     });
+
+    it("should be valid when one component_in and one non-start node both feed the same junction", function () {
+        var red = createEditorRed(
+            {
+                in01: { id: "in01", type: "component_in" },
+                change01: { id: "change01", type: "change" },
+                junction01: { id: "junction01", type: "junction" },
+                ret01: { id: "ret01", type: "component_out" }
+            },
+            [
+                { source: { id: "in01" }, target: { id: "junction01" } },
+                { source: { id: "change01" }, target: { id: "junction01" } },
+                { source: { id: "junction01" }, target: { id: "ret01" } }
+            ]
+        );
+
+        editorGraph.getComponentReturnValidationResult(red, { id: "ret01" }).should.eql({
+            codes: [],
+            message: ""
+        });
+    });
 });

@@ -262,7 +262,7 @@
                 "contextOption": false
             },
             {
-                "name": "Das ist ein längerer",
+                "name": "Das ist ein l\u00e4ngerer",
                 "type": "json",
                 "required": true,
                 "contextOption": false
@@ -479,8 +479,8 @@
                 "source": "\"Test\"",
                 "sourceType": "jsonata"
             },
-            "Das ist ein längerer": {
-                "name": "Das ist ein längerer",
+            "Das ist ein l\u00e4ngerer": {
+                "name": "Das ist ein l\u00e4ngerer",
                 "source": "[\"a\", \"b\"]",
                 "sourceType": "json"
             },
@@ -3460,6 +3460,64 @@
         "usecontext": true,
         "x": 180,
         "y": 420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "pw_junction_in",
+        "type": "component_in",
+        "z": "pw_tab",
+        "name": "junction start",
+        "api": [
+            {
+                "name": "prop",
+                "type": "json"
+            }
+        ],
+        "usecontext": true,
+        "x": 170,
+        "y": 500,
+        "wires": [
+            [
+                "pw_junction"
+            ]
+        ]
+    },
+    {
+        "id": "pw_junction",
+        "type": "junction",
+        "z": "pw_tab",
+        "x": 320,
+        "y": 500,
+        "wires": [
+            [
+                "pw_junction_ret"
+            ]
+        ]
+    },
+    {
+        "id": "pw_junction_ret",
+        "type": "component_out",
+        "z": "pw_tab",
+        "name": null,
+        "mode": "default",
+        "component_definitions_are_NOT_allowed_inside_subflows": false,
+        "x": 470,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "pw_run_junction",
+        "type": "component",
+        "z": "pw_tab",
+        "name": "junction component run",
+        "targetComponentId": "pw_junction_in",
+        "paramSources": {},
+        "outLabels": [],
+        "outputs": 0,
+        "x": 180,
+        "y": 560,
         "wires": [
             []
         ]
