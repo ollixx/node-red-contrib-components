@@ -71,7 +71,6 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
           cache: npm
-      - run: npm install --global npm@^11.5.1
       - name: Require supported release tag format
         run: |
           case "$RELEASE_TAG" in
@@ -117,3 +116,16 @@ jobs:
 
             Install for validation with:
             npm install node-red-contrib-components@next
+      - name: Create GitHub release
+        if: ${{ !contains(env.RELEASE_TAG, '-rc.') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          prerelease: false
+          body: |
+            Stable release for ${{ env.RELEASE_TAG }}.
+
+            Published from the tagged commit on master to the npm `latest` dist-tag.
+
+            Install with:
+            npm install node-red-contrib-components@latest
