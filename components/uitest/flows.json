@@ -3506,5 +3506,20 @@
         "x": 470,
         "y": 500,
         "wires": []
+    },
+    {
+        "id": "pw_run_junction",
+        "type": "component",
+        "z": "pw_tab",
+        "name": "junction component run",
+        "targetComponentId": "pw_junction_in",
+        "paramSources": {},
+        "outLabels": [],
+        "outputs": 0,
+        "x": 180,
+        "y": 560,
+        "wires": [
+            []
+        ]
     }
 ]

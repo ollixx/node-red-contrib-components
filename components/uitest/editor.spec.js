@@ -163,3 +163,19 @@ test("component_out connected through a junction shows no notConnected annotatio
     await expect(page.locator("#component-return-validation-alert")).toBeHidden();
     await closeNodeEditor(page, false);
 });
+
+test("component runner targeting a junction-connected component discovers exactly one output", async ({ page }) => {
+    await openEditor(page);
+
+    // Open the runner node that points to the junction-connected component
+    await openNodeEditor(page, "pw_run_junction");
+
+    // Save – oneditsave runs findReturnNodes forward through the junction
+    await closeNodeEditor(page, true);
+
+    // After saving, the node must have exactly 1 output (the default component_out)
+    const outputs = await page.evaluate(() => {
+        return RED.nodes.node("pw_run_junction").outputs;
+    });
+    expect(outputs).toBe(1);
+});
