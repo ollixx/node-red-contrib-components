@@ -38,7 +38,7 @@ jobs:
           esac
       - name: Require tag commit on release branch
         run: |
-          git fetch origin "$RELEASE_BRANCH" --depth=1
+          git fetch origin "$RELEASE_BRANCH"
           if ! git merge-base --is-ancestor HEAD "origin/$RELEASE_BRANCH"; then
             echo "Release tag $RELEASE_TAG must point to a commit that is contained in origin/$RELEASE_BRANCH." >&2
             exit 1
@@ -83,7 +83,7 @@ jobs:
           esac
       - name: Require tag commit on release branch
         run: |
-          git fetch origin "$RELEASE_BRANCH" --depth=1
+          git fetch origin "$RELEASE_BRANCH"
           if ! git merge-base --is-ancestor HEAD "origin/$RELEASE_BRANCH"; then
             echo "Release tag $RELEASE_TAG must point to a commit that is contained in origin/$RELEASE_BRANCH." >&2
             exit 1
