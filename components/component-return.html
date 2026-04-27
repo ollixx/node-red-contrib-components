@@ -24,7 +24,8 @@
 			}
 
 			visited.add(nodeId);
-			const node = RED.nodes.node(nodeId);
+			const node = RED.nodes.node(nodeId) ||
+				(RED.nodes.junction ? RED.nodes.junction(nodeId) : null);
 			if (!node) {
 				return found;
 			}

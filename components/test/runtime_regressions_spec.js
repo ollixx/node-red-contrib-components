@@ -3,6 +3,7 @@ var helper = require("node-red-node-test-helper");
 var componentStart = require("../component-start.js");
 var componentReturn = require("../component-return.js");
 var runComponent = require("../run-component.js");
+var junctionNode = require("@node-red/nodes/core/common/05-junction");
 
 helper.init(require.resolve("node-red"));
 
@@ -42,6 +43,42 @@ var flowWithMissingTarget = [
         type: "component",
         name: "run missing",
         targetComponentId: "missing-node",
+        paramSources: {},
+        statuz: "",
+        statuzType: "str",
+        outputs: 1,
+        outLabels: ["default"],
+        wires: [["debug01"]]
+    },
+    { id: "debug01", type: "helper" }
+];
+
+// component_in → junction → component_out, with an extra change node also feeding the junction
+var flowWithJunctionBeforeReturn = [
+    {
+        id: "in01",
+        type: "component_in",
+        name: "in 01",
+        api: [],
+        wires: [["junction01"]]
+    },
+    {
+        id: "junction01",
+        type: "junction",
+        wires: [["ret01"]]
+    },
+    {
+        id: "ret01",
+        type: "component_out",
+        name: "ret 01",
+        mode: "default",
+        wires: []
+    },
+    {
+        id: "run01",
+        type: "component",
+        name: "run 01",
+        targetComponentId: "in01",
         paramSources: {},
         statuz: "",
         statuzType: "str",
@@ -105,6 +142,30 @@ describe("runtime regressions", function () {
                     done(e);
                 }
             });
+        });
+    });
+
+    it("should route a message end-to-end when a junction sits between component_in and component_out", function (done) {
+        helper.load([componentStart, componentReturn, runComponent, junctionNode], flowWithJunctionBeforeReturn, {}, function () {
+            var ret01 = helper.getNode("ret01");
+            var run01 = helper.getNode("run01");
+            var debug01 = helper.getNode("debug01");
+
+            // the return node must not have flagged itself as invalid
+            ret01.error.should.not.be.called();
+
+            debug01.on("input", function (msg) {
+                setImmediate(function () {
+                    try {
+                        msg.should.have.property("payload", "hello");
+                        done();
+                    } catch (e) {
+                        done(e);
+                    }
+                });
+            });
+
+            run01.receive({ payload: "hello" });
         });
     });
 });

@@ -7,7 +7,8 @@
 		const COMPONENTS_CATEGORY = "advanced";
 
 		const getNode = function (nodeid) {
-			const originalNode = RED.nodes.node(nodeid);
+			const originalNode = RED.nodes.node(nodeid) ||
+				(RED.nodes.junction ? RED.nodes.junction(nodeid) : null);
 			if (!originalNode) {
 				return null;
 			}
