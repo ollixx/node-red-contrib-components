@@ -97,10 +97,10 @@ jobs:
         run: |
           case "$RELEASE_TAG" in
             v*.*.*-rc.*)
-              npm publish --tag next
+              npx -y npm@11.5.1 publish --tag next
               ;;
             v*.*.*)
-              npm publish
+              npx -y npm@11.5.1 publish
               ;;
           esac
       - name: Create GitHub prerelease
