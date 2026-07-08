@@ -41,7 +41,7 @@
     "devDependencies": {
         "c8": "^11.0.0",
         "mocha": "^11.7.5",
-        "node-red": "^4.1.8",
+        "node-red": "^5.0.1",
         "node-red-node-test-helper": "^0.3.6"
     },
     "scripts": {
